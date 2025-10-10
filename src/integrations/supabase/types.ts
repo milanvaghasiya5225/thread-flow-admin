@@ -14,16 +14,280 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      contacts: {
+        Row: {
+          assigned_to: string | null
+          communication_method:
+            | Database["public"]["Enums"]["communication_method"]
+            | null
+          created_at: string | null
+          deleted_at: string | null
+          deleted_by: string | null
+          email: string
+          id: string
+          name: string
+          phone: string | null
+          status: Database["public"]["Enums"]["contact_status"] | null
+          subject: string
+          updated_at: string | null
+        }
+        Insert: {
+          assigned_to?: string | null
+          communication_method?:
+            | Database["public"]["Enums"]["communication_method"]
+            | null
+          created_at?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
+          email: string
+          id?: string
+          name: string
+          phone?: string | null
+          status?: Database["public"]["Enums"]["contact_status"] | null
+          subject: string
+          updated_at?: string | null
+        }
+        Update: {
+          assigned_to?: string | null
+          communication_method?:
+            | Database["public"]["Enums"]["communication_method"]
+            | null
+          created_at?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
+          email?: string
+          id?: string
+          name?: string
+          phone?: string | null
+          status?: Database["public"]["Enums"]["contact_status"] | null
+          subject?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contacts_assigned_to_fkey"
+            columns: ["assigned_to"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contacts_deleted_by_fkey"
+            columns: ["deleted_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      messages: {
+        Row: {
+          contact_id: string
+          content: string
+          created_at: string | null
+          id: string
+          is_read: boolean | null
+          sender_id: string | null
+          sender_type: string
+        }
+        Insert: {
+          contact_id: string
+          content: string
+          created_at?: string | null
+          id?: string
+          is_read?: boolean | null
+          sender_id?: string | null
+          sender_type: string
+        }
+        Update: {
+          contact_id?: string
+          content?: string
+          created_at?: string | null
+          id?: string
+          is_read?: boolean | null
+          sender_id?: string | null
+          sender_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "messages_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "messages_sender_id_fkey"
+            columns: ["sender_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string | null
+          email_verification_status:
+            | Database["public"]["Enums"]["verification_status"]
+            | null
+          email_verified: boolean | null
+          first_name: string
+          id: string
+          last_name: string
+          phone_number: string
+          phone_verification_status:
+            | Database["public"]["Enums"]["verification_status"]
+            | null
+          phone_verified: boolean | null
+          updated_at: string | null
+          username: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string | null
+          email_verification_status?:
+            | Database["public"]["Enums"]["verification_status"]
+            | null
+          email_verified?: boolean | null
+          first_name: string
+          id: string
+          last_name: string
+          phone_number: string
+          phone_verification_status?:
+            | Database["public"]["Enums"]["verification_status"]
+            | null
+          phone_verified?: boolean | null
+          updated_at?: string | null
+          username: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string | null
+          email_verification_status?:
+            | Database["public"]["Enums"]["verification_status"]
+            | null
+          email_verified?: boolean | null
+          first_name?: string
+          id?: string
+          last_name?: string
+          phone_number?: string
+          phone_verification_status?:
+            | Database["public"]["Enums"]["verification_status"]
+            | null
+          phone_verified?: boolean | null
+          updated_at?: string | null
+          username?: string
+        }
+        Relationships: []
+      }
+      status_history: {
+        Row: {
+          changed_at: string | null
+          changed_by: string
+          comment: string | null
+          contact_id: string
+          id: string
+          new_status: Database["public"]["Enums"]["contact_status"]
+          old_status: Database["public"]["Enums"]["contact_status"] | null
+        }
+        Insert: {
+          changed_at?: string | null
+          changed_by: string
+          comment?: string | null
+          contact_id: string
+          id?: string
+          new_status: Database["public"]["Enums"]["contact_status"]
+          old_status?: Database["public"]["Enums"]["contact_status"] | null
+        }
+        Update: {
+          changed_at?: string | null
+          changed_by?: string
+          comment?: string | null
+          contact_id?: string
+          id?: string
+          new_status?: Database["public"]["Enums"]["contact_status"]
+          old_status?: Database["public"]["Enums"]["contact_status"] | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "status_history_changed_by_fkey"
+            columns: ["changed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "status_history_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_roles: {
+        Row: {
+          assigned_at: string | null
+          assigned_by: string | null
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          assigned_at?: string | null
+          assigned_by?: string | null
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          assigned_at?: string | null
+          assigned_by?: string | null
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_roles_assigned_by_fkey"
+            columns: ["assigned_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_roles_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
+      is_admin: {
+        Args: { _user_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "super_admin" | "admin" | "user"
+      communication_method: "email" | "phone" | "both"
+      contact_status: "new" | "in_progress" | "on_hold" | "resolved" | "closed"
+      verification_status: "pending" | "verified" | "failed"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +414,11 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["super_admin", "admin", "user"],
+      communication_method: ["email", "phone", "both"],
+      contact_status: ["new", "in_progress", "on_hold", "resolved", "closed"],
+      verification_status: ["pending", "verified", "failed"],
+    },
   },
 } as const
