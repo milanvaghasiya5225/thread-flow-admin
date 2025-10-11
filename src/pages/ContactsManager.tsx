@@ -64,7 +64,7 @@ const ContactsManager = () => {
       .order('created_at', { ascending: false });
 
     if (statusFilter !== 'all') {
-      query = query.eq('status', statusFilter);
+      query = query.eq('status', statusFilter as Contact['status']);
     }
 
     const { data } = await query;
@@ -121,9 +121,10 @@ const ContactsManager = () => {
 
     setLoading(true);
     try {
+      const typedStatus = status as Contact['status'];
       const { error } = await supabase
         .from('contacts')
-        .update({ status })
+        .update({ status: typedStatus })
         .eq('id', selectedContact.id);
 
       if (error) throw error;
@@ -131,10 +132,10 @@ const ContactsManager = () => {
       await supabase.from('status_history').insert({
         contact_id: selectedContact.id,
         old_status: selectedContact.status,
-        new_status: status,
+        new_status: typedStatus,
         comment,
         changed_by: user?.id,
-      });
+      } as any);
 
       setSelectedContact({ ...selectedContact, status: status as Contact['status'] });
       fetchContacts();
