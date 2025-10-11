@@ -9,6 +9,9 @@ import Verify from "./pages/auth/Verify";
 import Login from "./pages/auth/Login";
 import Dashboard from "./pages/Dashboard";
 import ContactsManager from "./pages/ContactsManager";
+import ProfileSettings from "./pages/ProfileSettings";
+import UsersList from "./pages/UsersList";
+import RoleManagement from "./pages/RoleManagement";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -27,6 +30,9 @@ const App = () => (
             <Route path="/login" element={<Login />} />
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/contacts" element={<ContactsManager />} />
+            <Route path="/profile" element={<ProfileSettings />} />
+            <Route path="/users" element={<UsersList />} />
+            <Route path="/roles" element={<RoleManagement />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>
