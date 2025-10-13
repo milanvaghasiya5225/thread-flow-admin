@@ -15,7 +15,9 @@ const registerSchema = z.object({
   lastName: z.string().min(2, 'Last name must be at least 2 characters'),
   username: z.string().min(3, 'Username must be at least 3 characters'),
   email: z.string().email('Invalid email address'),
-  phoneNumber: z.string().min(10, 'Phone number must be at least 10 digits'),
+  phoneNumber: z.string()
+    .regex(/^\+?[1-9]\d{1,14}$/, 'Invalid phone number. Use international format: +1234567890')
+    .transform(val => val.startsWith('+') ? val : `+${val}`),
   password: z.string().min(8, 'Password must be at least 8 characters'),
   confirmPassword: z.string()
 }).refine((data) => data.password === data.confirmPassword, {
