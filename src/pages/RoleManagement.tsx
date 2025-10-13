@@ -79,7 +79,7 @@ const RoleManagement = () => {
           user_id,
           role,
           assigned_at,
-          profiles (
+          profiles!user_roles_user_id_fkey (
             id,
             first_name,
             last_name,

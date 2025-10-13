@@ -14,6 +14,44 @@ export type Database = {
   }
   public: {
     Tables: {
+      contact_conversions: {
+        Row: {
+          contact_id: string
+          converted_at: string | null
+          converted_by: string | null
+          from_status: Database["public"]["Enums"]["contact_status"] | null
+          id: string
+          notes: string | null
+          to_status: Database["public"]["Enums"]["contact_status"]
+        }
+        Insert: {
+          contact_id: string
+          converted_at?: string | null
+          converted_by?: string | null
+          from_status?: Database["public"]["Enums"]["contact_status"] | null
+          id?: string
+          notes?: string | null
+          to_status: Database["public"]["Enums"]["contact_status"]
+        }
+        Update: {
+          contact_id?: string
+          converted_at?: string | null
+          converted_by?: string | null
+          from_status?: Database["public"]["Enums"]["contact_status"] | null
+          id?: string
+          notes?: string | null
+          to_status?: Database["public"]["Enums"]["contact_status"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contact_conversions_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       contacts: {
         Row: {
           assigned_to: string | null

@@ -34,12 +34,21 @@ interface Message {
   is_read: boolean;
 }
 
+interface Conversion {
+  id: string;
+  from_status: string | null;
+  to_status: string;
+  converted_at: string;
+  notes: string | null;
+}
+
 const ContactsManager = () => {
   const { user, roles } = useAuth();
   const navigate = useNavigate();
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
+  const [conversions, setConversions] = useState<Conversion[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [replyText, setReplyText] = useState('');
@@ -68,6 +77,7 @@ const ContactsManager = () => {
   useEffect(() => {
     if (selectedContact) {
       fetchMessages(selectedContact.id);
+      fetchConversions(selectedContact.id);
     }
   }, [selectedContact]);
 
@@ -94,6 +104,16 @@ const ContactsManager = () => {
       .order('created_at', { ascending: true });
 
     if (data) setMessages(data as Message[]);
+  };
+
+  const fetchConversions = async (contactId: string) => {
+    const { data } = await supabase
+      .from('contact_conversions')
+      .select('*')
+      .eq('contact_id', contactId)
+      .order('converted_at', { ascending: false });
+
+    if (data) setConversions(data as Conversion[]);
   };
 
   const sendReply = async () => {
@@ -268,7 +288,7 @@ const ContactsManager = () => {
         <div className={`${selectedContact ? 'flex-1' : 'hidden lg:flex'} lg:flex-1`}>
           {selectedContact ? (
             <Card className="h-full flex flex-col">
-              <div className="p-4 border-b">
+              <div className="p-4 border-b space-y-4">
                 <div className="flex items-center gap-4">
                   <Button
                     variant="ghost"
@@ -301,6 +321,29 @@ const ContactsManager = () => {
                     <Trash2 className="h-4 w-4" />
                   </Button>
                 </div>
+
+                {/* Conversion Tracking */}
+                {conversions.length > 0 && (
+                  <div className="bg-muted/50 rounded-lg p-3">
+                    <h3 className="text-sm font-semibold mb-2">Status History</h3>
+                    <div className="space-y-1">
+                      {conversions.map((conv, idx) => (
+                        <div key={conv.id} className="flex items-center gap-2 text-xs">
+                          <Badge variant="outline" className={getStatusColor(conv.from_status || 'new')}>
+                            {conv.from_status?.replace('_', ' ') || 'new'}
+                          </Badge>
+                          <span className="text-muted-foreground">→</span>
+                          <Badge variant="outline" className={getStatusColor(conv.to_status)}>
+                            {conv.to_status.replace('_', ' ')}
+                          </Badge>
+                          <span className="text-muted-foreground ml-auto">
+                            {format(new Date(conv.converted_at), 'MMM d, h:mm a')}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="flex-1 overflow-y-auto p-4 space-y-4">
