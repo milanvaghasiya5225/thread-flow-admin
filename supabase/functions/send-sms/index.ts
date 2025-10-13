@@ -7,6 +7,12 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+const ERROR_MESSAGES = {
+  UNAUTHORIZED: 'Authentication required',
+  INVALID_INPUT: 'Invalid request data',
+  GENERIC: 'An error occurred processing your request'
+};
+
 const smsSchema = z.object({
   to: z.string().regex(/^\+?[1-9]\d{1,14}$/, 'Invalid phone number format'),
   body: z.string().trim().min(1).max(1600),
@@ -92,14 +98,31 @@ serve(async (req) => {
       }
     );
   } catch (error: any) {
-    console.error('Error sending SMS:', error);
+    // Log full error server-side for debugging
+    console.error('SMS send error:', {
+      error: error.message,
+      stack: error.stack,
+      timestamp: new Date().toISOString()
+    });
+    
+    // Return generic message to client
+    let userMessage = ERROR_MESSAGES.GENERIC;
+    let statusCode = 500;
+    
+    if (error.message === 'Unauthorized' || error.message === 'No authorization header') {
+      userMessage = ERROR_MESSAGES.UNAUTHORIZED;
+      statusCode = 401;
+    } else if (error.name === 'ZodError') {
+      // Zod validation errors are safe to return
+      userMessage = ERROR_MESSAGES.INVALID_INPUT;
+      statusCode = 400;
+    }
+    
     return new Response(
-      JSON.stringify({ 
-        error: error?.message || 'Failed to send SMS'
-      }),
+      JSON.stringify({ error: userMessage }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 500,
+        status: statusCode,
       }
     );
   }
