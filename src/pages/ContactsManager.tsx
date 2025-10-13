@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -34,7 +35,8 @@ interface Message {
 }
 
 const ContactsManager = () => {
-  const { user } = useAuth();
+  const { user, roles } = useAuth();
+  const navigate = useNavigate();
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -46,9 +48,22 @@ const ContactsManager = () => {
   const [statusComment, setStatusComment] = useState('');
   const [loading, setLoading] = useState(false);
 
+  const isAdmin = roles.some((r) => r.role === 'admin' || r.role === 'super_admin');
+
   useEffect(() => {
+    if (!user) {
+      navigate('/login');
+      return;
+    }
+
+    if (!isAdmin) {
+      toast.error('Access Denied. Only admins can access this page.');
+      navigate('/dashboard');
+      return;
+    }
+
     fetchContacts();
-  }, [statusFilter]);
+  }, [user, isAdmin, navigate, statusFilter]);
 
   useEffect(() => {
     if (selectedContact) {
