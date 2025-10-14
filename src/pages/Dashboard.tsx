@@ -1,14 +1,15 @@
 import { useEffect, useState } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { useNavigate } from 'react-router-dom';
+import { apiClient } from '@/services/apiClient';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { CheckCircle, Clock, AlertCircle, MessageSquare } from 'lucide-react';
+import { CheckCircle, Clock, MessageSquare } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import DashboardLayout from '@/components/DashboardLayout';
+import { useDotNetAuth } from '@/contexts/DotNetAuthContext';
 
 interface Stats {
   resolved: number;
   pending: number;
-  inProgress: number;
   total: number;
 }
 
@@ -16,35 +17,37 @@ interface MonthlyData {
   month: string;
   resolved: number;
   pending: number;
-  inProgress: number;
 }
 
 const Dashboard = () => {
-  const [stats, setStats] = useState<Stats>({ resolved: 0, pending: 0, inProgress: 0, total: 0 });
+  const { isAuthenticated } = useDotNetAuth();
+  const navigate = useNavigate();
+  const [stats, setStats] = useState<Stats>({ resolved: 0, pending: 0, total: 0 });
   const [monthlyData, setMonthlyData] = useState<MonthlyData[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!isAuthenticated) {
+      navigate('/dotnet-login');
+      return;
+    }
+    
     fetchDashboardData();
-  }, []);
+  }, [isAuthenticated, navigate]);
 
   const fetchDashboardData = async () => {
     try {
-      // Fetch current stats
-      const { data: contacts } = await supabase
-        .from('contacts')
-        .select('status, created_at')
-        .is('deleted_at', null);
-
-      if (contacts) {
-        const resolved = contacts.filter(c => c.status === 'resolved' || c.status === 'closed').length;
-        const pending = contacts.filter(c => c.status === 'new').length;
-        const inProgress = contacts.filter(c => c.status === 'in_progress').length;
+      // Fetch contact messages from the API
+      const result = await apiClient.getContactMessages();
+      
+      if (result.isSuccess && result.value) {
+        const contacts = result.value;
+        const resolved = contacts.filter(c => c.isResolved).length;
+        const pending = contacts.filter(c => !c.isResolved).length;
 
         setStats({
           resolved,
           pending,
-          inProgress,
           total: contacts.length,
         });
 
@@ -59,21 +62,18 @@ const Dashboard = () => {
             month: monthKey,
             resolved: 0,
             pending: 0,
-            inProgress: 0,
           };
         }
 
         contacts.forEach(contact => {
-          const contactDate = new Date(contact.created_at);
+          const contactDate = new Date(contact.createdAtUtc);
           const monthKey = contactDate.toLocaleString('default', { month: 'short', year: '2-digit' });
           
           if (monthlyStats[monthKey]) {
-            if (contact.status === 'resolved' || contact.status === 'closed') {
+            if (contact.isResolved) {
               monthlyStats[monthKey].resolved++;
-            } else if (contact.status === 'new') {
+            } else {
               monthlyStats[monthKey].pending++;
-            } else if (contact.status === 'in_progress') {
-              monthlyStats[monthKey].inProgress++;
             }
           }
         });
@@ -103,13 +103,6 @@ const Dashboard = () => {
       bgColor: 'bg-yellow-500/10',
     },
     {
-      title: 'In Progress',
-      value: stats.inProgress,
-      icon: AlertCircle,
-      color: 'text-blue-500',
-      bgColor: 'bg-blue-500/10',
-    },
-    {
       title: 'Total Contacts',
       value: stats.total,
       icon: MessageSquare,
@@ -137,7 +130,7 @@ const Dashboard = () => {
         </div>
 
         {/* Stats Cards */}
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {statCards.map((stat) => {
             const Icon = stat.icon;
             return (
@@ -176,7 +169,6 @@ const Dashboard = () => {
                     }}
                   />
                   <Bar dataKey="resolved" fill="hsl(var(--chart-1))" name="Resolved" />
-                  <Bar dataKey="inProgress" fill="hsl(var(--chart-2))" name="In Progress" />
                   <Bar dataKey="pending" fill="hsl(var(--chart-3))" name="Pending" />
                 </BarChart>
               </ResponsiveContainer>

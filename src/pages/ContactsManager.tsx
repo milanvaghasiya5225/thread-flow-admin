@@ -1,208 +1,98 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
+import { apiClient } from '@/services/apiClient';
+import type { ContactMessage } from '@/types/api';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Search, Filter, ArrowLeft, Send, Trash2, MessageSquare } from 'lucide-react';
+import { Search, ArrowLeft, Trash2, MessageSquare, CheckCircle, Clock } from 'lucide-react';
 import { toast } from 'sonner';
-import { useAuth } from '@/contexts/AuthContext';
+import { useDotNetAuth } from '@/contexts/DotNetAuthContext';
 import DashboardLayout from '@/components/DashboardLayout';
 import { format } from 'date-fns';
 
-interface Contact {
-  id: string;
-  name: string;
-  email: string;
-  phone: string | null;
-  subject: string;
-  status: 'new' | 'in_progress' | 'on_hold' | 'resolved' | 'closed';
-  communication_method: 'email' | 'phone' | 'both';
-  created_at: string;
-  updated_at: string;
-}
-
-interface Message {
-  id: string;
-  content: string;
-  sender_type: 'customer' | 'admin';
-  created_at: string;
-  is_read: boolean;
-}
-
-interface Conversion {
-  id: string;
-  from_status: string | null;
-  to_status: string;
-  converted_at: string;
-  notes: string | null;
-}
+// Note: This page uses the Contact Us API from your .NET backend
+// Missing features that need to be added to your API:
+// - Message/conversation endpoints for replies
+// - Status history tracking
+// - Advanced filtering and status management
 
 const ContactsManager = () => {
-  const { user, roles } = useAuth();
+  const { user, isAuthenticated } = useDotNetAuth();
   const navigate = useNavigate();
-  const [contacts, setContacts] = useState<Contact[]>([]);
-  const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [conversions, setConversions] = useState<Conversion[]>([]);
+  const [contacts, setContacts] = useState<ContactMessage[]>([]);
+  const [selectedContact, setSelectedContact] = useState<ContactMessage | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [replyText, setReplyText] = useState('');
-  const [statusCommentDialog, setStatusCommentDialog] = useState(false);
-  const [newStatus, setNewStatus] = useState('');
-  const [statusComment, setStatusComment] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const isAdmin = roles.some((r) => r.role === 'admin' || r.role === 'super_admin');
+  const isAdmin = true; // TODO: Get from API when role endpoints are added
 
   useEffect(() => {
-    if (!user) {
-      navigate('/login');
-      return;
-    }
-
-    if (!isAdmin) {
-      toast.error('Access Denied. Only admins can access this page.');
-      navigate('/dashboard');
+    if (!isAuthenticated) {
+      navigate('/dotnet-login');
       return;
     }
 
     fetchContacts();
-  }, [user, isAdmin, navigate, statusFilter]);
-
-  useEffect(() => {
-    if (selectedContact) {
-      fetchMessages(selectedContact.id);
-      fetchConversions(selectedContact.id);
-    }
-  }, [selectedContact]);
+  }, [isAuthenticated, navigate, statusFilter]);
 
   const fetchContacts = async () => {
-    let query = supabase
-      .from('contacts')
-      .select('*')
-      .is('deleted_at', null)
-      .order('created_at', { ascending: false });
-
-    if (statusFilter !== 'all') {
-      query = query.eq('status', statusFilter as Contact['status']);
+    try {
+      const onlyUnresolved = statusFilter === 'all' ? undefined : statusFilter === 'unresolved';
+      const result = await apiClient.getContactMessages(onlyUnresolved);
+      
+      if (result.isSuccess && result.value) {
+        setContacts(result.value);
+      }
+    } catch (error) {
+      toast.error('Failed to fetch contacts');
     }
-
-    const { data } = await query;
-    if (data) setContacts(data as Contact[]);
   };
 
-  const fetchMessages = async (contactId: string) => {
-    const { data } = await supabase
-      .from('messages')
-      .select('*')
-      .eq('contact_id', contactId)
-      .order('created_at', { ascending: true });
-
-    if (data) setMessages(data as Message[]);
-  };
-
-  const fetchConversions = async (contactId: string) => {
-    const { data } = await supabase
-      .from('contact_conversions')
-      .select('*')
-      .eq('contact_id', contactId)
-      .order('converted_at', { ascending: false });
-
-    if (data) setConversions(data as Conversion[]);
-  };
-
-  const sendReply = async () => {
-    if (!replyText.trim() || !selectedContact) return;
+  const updateContactStatus = async (isResolved: boolean) => {
+    if (!selectedContact) return;
 
     setLoading(true);
     try {
-      const { error } = await supabase.from('messages').insert({
-        contact_id: selectedContact.id,
-        content: replyText,
-        sender_type: 'admin',
-        sender_id: user?.id,
+      const result = await apiClient.updateContactMessage(selectedContact.id, {
+        id: selectedContact.id,
+        isResolved
       });
 
-      if (error) throw error;
+      if (!result.isSuccess) {
+        throw new Error(result.error?.description || 'Update failed');
+      }
 
-      // TODO: Implement email/SMS sending via edge function based on communication_method
-      
-      setReplyText('');
-      fetchMessages(selectedContact.id);
-      toast.success('Reply sent successfully');
-    } catch (error) {
-      toast.error('Failed to send reply');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleStatusChange = (status: string) => {
-    if (['on_hold', 'resolved', 'closed'].includes(status)) {
-      setNewStatus(status);
-      setStatusCommentDialog(true);
-    } else {
-      updateStatus(status, '');
-    }
-  };
-
-  const updateStatus = async (status: string, comment: string) => {
-    if (!selectedContact) return;
-
-    setLoading(true);
-    try {
-      const typedStatus = status as Contact['status'];
-      const { error } = await supabase
-        .from('contacts')
-        .update({ status: typedStatus })
-        .eq('id', selectedContact.id);
-
-      if (error) throw error;
-
-      await supabase.from('status_history').insert({
-        contact_id: selectedContact.id,
-        old_status: selectedContact.status,
-        new_status: typedStatus,
-        comment,
-        changed_by: user?.id,
-      } as any);
-
-      setSelectedContact({ ...selectedContact, status: status as Contact['status'] });
+      setSelectedContact({ ...selectedContact, isResolved });
       fetchContacts();
-      setStatusCommentDialog(false);
-      setStatusComment('');
       toast.success('Status updated successfully');
-    } catch (error) {
-      toast.error('Failed to update status');
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to update status');
     } finally {
       setLoading(false);
     }
   };
 
-  const softDeleteContact = async () => {
+  const deleteContact = async () => {
     if (!selectedContact) return;
 
-    if (!confirm('Are you sure you want to delete this contact? This action can be reversed.')) return;
+    if (!confirm('Are you sure you want to delete this contact?')) return;
 
     setLoading(true);
     try {
-      const { error } = await supabase
-        .from('contacts')
-        .update({ deleted_at: new Date().toISOString(), deleted_by: user?.id })
-        .eq('id', selectedContact.id);
+      const result = await apiClient.deleteContactMessage(selectedContact.id);
 
-      if (error) throw error;
+      if (!result.isSuccess) {
+        throw new Error(result.error?.description || 'Delete failed');
+      }
 
       setSelectedContact(null);
       fetchContacts();
       toast.success('Contact deleted successfully');
-    } catch (error) {
-      toast.error('Failed to delete contact');
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to delete contact');
     } finally {
       setLoading(false);
     }
@@ -214,15 +104,10 @@ const ContactsManager = () => {
     contact.subject.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const getStatusColor = (status: string) => {
-    const colors = {
-      new: 'bg-blue-500/10 text-blue-500',
-      in_progress: 'bg-yellow-500/10 text-yellow-500',
-      on_hold: 'bg-orange-500/10 text-orange-500',
-      resolved: 'bg-green-500/10 text-green-500',
-      closed: 'bg-gray-500/10 text-gray-500',
-    };
-    return colors[status as keyof typeof colors] || '';
+  const getStatusColor = (isResolved: boolean) => {
+    return isResolved 
+      ? 'bg-green-500/10 text-green-500' 
+      : 'bg-yellow-500/10 text-yellow-500';
   };
 
   return (
@@ -232,7 +117,7 @@ const ContactsManager = () => {
         <div className={`${selectedContact ? 'hidden lg:block' : 'flex-1'} lg:w-96 xl:w-[28rem]`}>
           <Card className="h-full flex flex-col">
             <div className="p-4 border-b space-y-4">
-              <h2 className="text-2xl font-bold">Contacts</h2>
+              <h2 className="text-2xl font-bold">Contact Messages</h2>
               
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
@@ -245,14 +130,14 @@ const ContactsManager = () => {
               </div>
 
               <div className="flex gap-2 flex-wrap">
-                {['all', 'new', 'in_progress', 'on_hold', 'resolved', 'closed'].map((status) => (
+                {['all', 'unresolved', 'resolved'].map((status) => (
                   <Badge
                     key={status}
                     variant={statusFilter === status ? 'default' : 'outline'}
                     className="cursor-pointer"
                     onClick={() => setStatusFilter(status)}
                   >
-                    {status.replace('_', ' ')}
+                    {status}
                   </Badge>
                 ))}
               </div>
@@ -269,14 +154,17 @@ const ContactsManager = () => {
                 >
                   <div className="flex justify-between items-start mb-2">
                     <h3 className="font-semibold">{contact.name}</h3>
-                    <Badge className={getStatusColor(contact.status)}>
-                      {contact.status.replace('_', ' ')}
+                    <Badge className={getStatusColor(contact.isResolved)}>
+                      {contact.isResolved ? 'Resolved' : 'Pending'}
                     </Badge>
                   </div>
                   <p className="text-sm text-muted-foreground mb-1">{contact.email}</p>
+                  {contact.phone && (
+                    <p className="text-sm text-muted-foreground mb-1">{contact.phone}</p>
+                  )}
                   <p className="text-sm font-medium truncate">{contact.subject}</p>
                   <p className="text-xs text-muted-foreground mt-2">
-                    {format(new Date(contact.created_at), 'MMM d, yyyy')}
+                    {format(new Date(contact.createdAtUtc), 'MMM d, yyyy')}
                   </p>
                 </Card>
               ))}
@@ -305,80 +193,51 @@ const ContactsManager = () => {
                       <span>{selectedContact.email}</span>
                     </div>
                   </div>
-                  <Select value={selectedContact.status} onValueChange={handleStatusChange}>
-                    <SelectTrigger className="w-[180px]">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="new">New</SelectItem>
-                      <SelectItem value="in_progress">In Progress</SelectItem>
-                      <SelectItem value="on_hold">On Hold</SelectItem>
-                      <SelectItem value="resolved">Resolved</SelectItem>
-                      <SelectItem value="closed">Closed</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <Button variant="destructive" size="icon" onClick={softDeleteContact}>
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
+                  <div className="flex gap-2">
+                    {!selectedContact.isResolved && (
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => updateContactStatus(true)}
+                        disabled={loading}
+                      >
+                        <CheckCircle className="h-4 w-4 mr-2" />
+                        Mark Resolved
+                      </Button>
+                    )}
+                    {selectedContact.isResolved && (
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => updateContactStatus(false)}
+                        disabled={loading}
+                      >
+                        <Clock className="h-4 w-4 mr-2" />
+                        Mark Pending
+                      </Button>
+                    )}
+                    <Button variant="destructive" size="icon" onClick={deleteContact} disabled={loading}>
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
-
-                {/* Conversion Tracking */}
-                {conversions.length > 0 && (
-                  <div className="bg-muted/50 rounded-lg p-3">
-                    <h3 className="text-sm font-semibold mb-2">Status History</h3>
-                    <div className="space-y-1">
-                      {conversions.map((conv, idx) => (
-                        <div key={conv.id} className="flex items-center gap-2 text-xs">
-                          <Badge variant="outline" className={getStatusColor(conv.from_status || 'new')}>
-                            {conv.from_status?.replace('_', ' ') || 'new'}
-                          </Badge>
-                          <span className="text-muted-foreground">→</span>
-                          <Badge variant="outline" className={getStatusColor(conv.to_status)}>
-                            {conv.to_status.replace('_', ' ')}
-                          </Badge>
-                          <span className="text-muted-foreground ml-auto">
-                            {format(new Date(conv.converted_at), 'MMM d, h:mm a')}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
               </div>
 
-              <div className="flex-1 overflow-y-auto p-4 space-y-4">
-                {messages.map((message) => (
-                  <div
-                    key={message.id}
-                    className={`flex ${message.sender_type === 'admin' ? 'justify-end' : 'justify-start'}`}
-                  >
-                    <div
-                      className={`max-w-[70%] rounded-lg p-3 ${
-                        message.sender_type === 'admin'
-                          ? 'bg-primary text-primary-foreground'
-                          : 'bg-muted'
-                      }`}
-                    >
-                      <p className="text-sm whitespace-pre-wrap">{message.content}</p>
-                      <p className="text-xs opacity-70 mt-1">
-                        {format(new Date(message.created_at), 'MMM d, h:mm a')}
-                      </p>
+              <div className="flex-1 overflow-y-auto p-6">
+                <div className="space-y-4">
+                  <div>
+                    <h3 className="font-semibold mb-2">Message:</h3>
+                    <div className="bg-muted rounded-lg p-4">
+                      <p className="whitespace-pre-wrap">{selectedContact.message}</p>
                     </div>
                   </div>
-                ))}
-              </div>
-
-              <div className="p-4 border-t">
-                <div className="flex gap-2">
-                  <Textarea
-                    placeholder="Type your reply..."
-                    value={replyText}
-                    onChange={(e) => setReplyText(e.target.value)}
-                    className="min-h-[80px]"
-                  />
-                  <Button onClick={sendReply} disabled={loading || !replyText.trim()}>
-                    <Send className="h-4 w-4" />
-                  </Button>
+                  
+                  <div className="bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+                    <p className="text-sm">
+                      <strong>Note:</strong> Conversation/messaging features need to be added to your .NET API. 
+                      Currently showing the initial contact message only.
+                    </p>
+                  </div>
                 </div>
               </div>
             </Card>
@@ -386,41 +245,12 @@ const ContactsManager = () => {
             <Card className="h-full flex items-center justify-center">
               <div className="text-center text-muted-foreground">
                 <MessageSquare className="h-16 w-16 mx-auto mb-4 opacity-50" />
-                <p>Select a contact to view conversation</p>
+                <p>Select a contact to view details</p>
               </div>
             </Card>
           )}
         </div>
       </div>
-
-      {/* Status Comment Dialog */}
-      <Dialog open={statusCommentDialog} onOpenChange={setStatusCommentDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Status Change Comment</DialogTitle>
-            <DialogDescription>
-              Please provide a comment for this status change (required for on hold, resolved, or closed).
-            </DialogDescription>
-          </DialogHeader>
-          <Textarea
-            placeholder="Enter your comment..."
-            value={statusComment}
-            onChange={(e) => setStatusComment(e.target.value)}
-            className="min-h-[100px]"
-          />
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setStatusCommentDialog(false)}>
-              Cancel
-            </Button>
-            <Button
-              onClick={() => updateStatus(newStatus, statusComment)}
-              disabled={!statusComment.trim()}
-            >
-              Save
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </DashboardLayout>
   );
 };

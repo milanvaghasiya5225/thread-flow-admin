@@ -21,7 +21,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { useAuth } from '@/contexts/AuthContext';
+import { useDotNetAuth } from '@/contexts/DotNetAuthContext';
 import { cn } from '@/lib/utils';
 
 interface DashboardLayoutProps {
@@ -29,14 +29,15 @@ interface DashboardLayoutProps {
 }
 
 const DashboardLayout = ({ children }: DashboardLayoutProps) => {
-  const { profile, roles, signOut } = useAuth();
+  const { user, logout } = useDotNetAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showLogoutDialog, setShowLogoutDialog] = useState(false);
 
-  const isSuperAdmin = roles.some(r => r.role === 'super_admin');
-  const isAdmin = roles.some(r => r.role === 'admin' || r.role === 'super_admin');
+  // Note: Role management needs to be added to your .NET API
+  const isSuperAdmin = false; // TODO: Get from API when role endpoints are added
+  const isAdmin = true; // TODO: Get from API when role endpoints are added
 
   const menuItems = [
     { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard', show: isAdmin },
@@ -46,13 +47,13 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   ].filter(item => item.show);
 
   const handleLogout = async () => {
-    await signOut();
-    navigate('/login');
+    logout();
+    navigate('/dotnet-login');
   };
 
   const getInitials = () => {
-    if (!profile) return 'U';
-    return `${profile.first_name[0]}${profile.last_name[0]}`.toUpperCase();
+    if (!user) return 'U';
+    return `${user.firstName[0]}${user.lastName[0]}`.toUpperCase();
   };
 
   return (
@@ -123,7 +124,6 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="h-auto p-2">
                 <Avatar className="h-8 w-8">
-                  <AvatarImage src={profile?.avatar_url} />
                   <AvatarFallback>{getInitials()}</AvatarFallback>
                 </Avatar>
               </Button>
@@ -131,8 +131,8 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
             <DropdownMenuContent align="end" className="w-56">
               <DropdownMenuLabel>
                 <div className="flex flex-col space-y-1">
-                  <p className="text-sm font-medium">{profile?.first_name} {profile?.last_name}</p>
-                  <p className="text-xs text-muted-foreground">@{profile?.username}</p>
+                  <p className="text-sm font-medium">{user?.firstName} {user?.lastName}</p>
+                  <p className="text-xs text-muted-foreground">{user?.email}</p>
                 </div>
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
