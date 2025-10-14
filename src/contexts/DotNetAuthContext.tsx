@@ -1,11 +1,12 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { apiClient } from '@/services/apiClient';
-import type { UserResponse } from '@/types/api';
+import type { UserResponse, LoginPasswordlessRequest, OtpPurpose } from '@/types/api';
 
 interface AuthContextType {
   user: UserResponse | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
+  loginWithOtp: (data: LoginPasswordlessRequest) => Promise<{ success: boolean; contact: string; medium: string }>;
   register: (data: {
     firstName: string;
     lastName: string;
@@ -15,6 +16,7 @@ interface AuthContextType {
   }) => Promise<void>;
   logout: () => void;
   isAuthenticated: boolean;
+  setUserFromToken: (user: UserResponse) => void;
 }
 
 const DotNetAuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -64,6 +66,30 @@ export const DotNetAuthProvider = ({ children }: DotNetAuthProviderProps) => {
     }
   };
 
+  const loginWithOtp = async (data: LoginPasswordlessRequest) => {
+    try {
+      const result = await apiClient.loginPasswordless(data);
+      
+      if (!result.isSuccess) {
+        throw new Error(result.error?.description || 'Failed to send OTP');
+      }
+
+      // Return success with contact info for OTP verification page
+      return {
+        success: true,
+        contact: data.email || data.phone || '',
+        medium: data.email ? 'email' : 'phone'
+      };
+    } catch (error) {
+      console.error('Login with OTP error:', error);
+      throw error;
+    }
+  };
+
+  const setUserFromToken = (userData: UserResponse) => {
+    setUser(userData);
+  };
+
   const register = async (data: {
     firstName: string;
     lastName: string;
@@ -95,9 +121,11 @@ export const DotNetAuthProvider = ({ children }: DotNetAuthProviderProps) => {
     user,
     loading,
     login,
+    loginWithOtp,
     register,
     logout,
     isAuthenticated: !!user,
+    setUserFromToken,
   };
 
   return (
