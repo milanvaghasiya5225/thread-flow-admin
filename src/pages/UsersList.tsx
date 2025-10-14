@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
+import { useDotNetAuth } from '@/contexts/DotNetAuthContext';
+import { apiClient } from '@/services/apiClient';
 import DashboardLayout from '@/components/DashboardLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -29,64 +29,31 @@ interface UserWithRoles extends UserProfile {
 }
 
 const UsersList = () => {
-  const { user, roles } = useAuth();
+  const { user, isAuthenticated } = useDotNetAuth();
   const navigate = useNavigate();
   const [users, setUsers] = useState<UserWithRoles[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
 
-  const isSuperAdmin = roles.some((r) => r.role === 'super_admin');
-
   useEffect(() => {
-    if (!user) {
-      navigate('/login');
-      return;
-    }
-
-    if (!isSuperAdmin) {
-      toast({
-        title: 'Access Denied',
-        description: 'You do not have permission to access this page',
-        variant: 'destructive',
-      });
-      navigate('/dashboard');
+    if (!isAuthenticated) {
+      navigate('/dotnet-login');
       return;
     }
 
     fetchUsers();
-  }, [user, isSuperAdmin, navigate]);
+  }, [isAuthenticated, navigate]);
 
   const fetchUsers = async () => {
     setLoading(true);
     try {
-      const { data: profilesData, error: profilesError } = await supabase
-        .from('profiles')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (profilesError) throw profilesError;
-
-      const { data: authData } = await supabase.auth.admin.listUsers();
-      const authUsers = authData?.users || [];
-
-      const { data: rolesData } = await supabase
-        .from('user_roles')
-        .select('user_id, role');
-
-      const usersWithRoles: UserWithRoles[] = (profilesData || []).map((profile) => {
-        const authUser = authUsers.find((u) => u.id === profile.id);
-        const userRoles = (rolesData || [])
-          .filter((r) => r.user_id === profile.id)
-          .map((r) => r.role);
-
-        return {
-          ...profile,
-          email: authUser?.email || '',
-          roles: userRoles,
-        };
+      // Note: User management endpoints need to be added to your .NET API
+      // For now, showing placeholder message
+      toast({
+        title: 'Coming Soon',
+        description: 'User management endpoints need to be added to your .NET API',
       });
-
-      setUsers(usersWithRoles);
+      setUsers([]);
     } catch (error: any) {
       toast({
         title: 'Error',

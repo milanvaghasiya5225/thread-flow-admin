@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
+import { useDotNetAuth } from '@/contexts/DotNetAuthContext';
+import { apiClient } from '@/services/apiClient';
 import DashboardLayout from '@/components/DashboardLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -39,7 +39,7 @@ interface UserRole {
 }
 
 const RoleManagement = () => {
-  const { user, roles } = useAuth();
+  const { user, isAuthenticated } = useDotNetAuth();
   const navigate = useNavigate();
   const [userRoles, setUserRoles] = useState<UserRole[]>([]);
   const [loading, setLoading] = useState(true);
@@ -48,55 +48,24 @@ const RoleManagement = () => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [roleToDelete, setRoleToDelete] = useState<string | null>(null);
 
-  const isSuperAdmin = roles.some((r) => r.role === 'super_admin');
-
   useEffect(() => {
-    if (!user) {
-      navigate('/login');
-      return;
-    }
-
-    if (!isSuperAdmin) {
-      toast({
-        title: 'Access Denied',
-        description: 'You do not have permission to access this page',
-        variant: 'destructive',
-      });
-      navigate('/dashboard');
+    if (!isAuthenticated) {
+      navigate('/dotnet-login');
       return;
     }
 
     fetchRoles();
-  }, [user, isSuperAdmin, navigate]);
+  }, [isAuthenticated, navigate]);
 
   const fetchRoles = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('user_roles')
-        .select(`
-          id,
-          user_id,
-          role,
-          assigned_at,
-          profiles!user_roles_user_id_fkey (
-            id,
-            first_name,
-            last_name,
-            username,
-            avatar_url
-          )
-        `)
-        .order('assigned_at', { ascending: false });
-
-      if (error) throw error;
-
-      const rolesWithProfiles = (data || []).map((role: any) => ({
-        ...role,
-        profile: role.profiles,
-      }));
-
-      setUserRoles(rolesWithProfiles);
+      // Note: Role management endpoints need to be added to your .NET API
+      toast({
+        title: 'Coming Soon',
+        description: 'Role management endpoints need to be added to your .NET API',
+      });
+      setUserRoles([]);
     } catch (error: any) {
       toast({
         title: 'Error',
@@ -118,59 +87,22 @@ const RoleManagement = () => {
       return;
     }
 
-    try {
-      const { error } = await supabase.from('user_roles').insert({
-        user_id: selectedUser,
-        role: selectedRole,
-        assigned_by: user?.id,
-      } as any);
-
-      if (error) throw error;
-
-      toast({
-        title: 'Success',
-        description: 'Role assigned successfully',
-      });
-
-      setSelectedUser('');
-      setSelectedRole('');
-      fetchRoles();
-    } catch (error: any) {
-      toast({
-        title: 'Error',
-        description: error.message,
-        variant: 'destructive',
-      });
-    }
+    toast({
+      title: 'Coming Soon',
+      description: 'Role assignment endpoints need to be added to your .NET API',
+    });
   };
 
   const handleDeleteRole = async () => {
     if (!roleToDelete) return;
 
-    try {
-      const { error } = await supabase
-        .from('user_roles')
-        .delete()
-        .eq('id', roleToDelete);
-
-      if (error) throw error;
-
-      toast({
-        title: 'Success',
-        description: 'Role removed successfully',
-      });
-
-      fetchRoles();
-    } catch (error: any) {
-      toast({
-        title: 'Error',
-        description: error.message,
-        variant: 'destructive',
-      });
-    } finally {
-      setDeleteDialogOpen(false);
-      setRoleToDelete(null);
-    }
+    toast({
+      title: 'Coming Soon',
+      description: 'Role deletion endpoints need to be added to your .NET API',
+    });
+    
+    setDeleteDialogOpen(false);
+    setRoleToDelete(null);
   };
 
   const getInitials = (firstName: string, lastName: string) => {

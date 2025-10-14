@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
+import { useDotNetAuth } from '@/contexts/DotNetAuthContext';
+import { apiClient } from '@/services/apiClient';
 import DashboardLayout from '@/components/DashboardLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,7 +12,7 @@ import { toast } from '@/hooks/use-toast';
 import { Upload } from 'lucide-react';
 
 const ProfileSettings = () => {
-  const { user, profile, refreshProfile } = useAuth();
+  const { user, isAuthenticated } = useDotNetAuth();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -25,42 +25,30 @@ const ProfileSettings = () => {
   });
 
   useEffect(() => {
-    if (!user) {
-      navigate('/login');
+    if (!isAuthenticated) {
+      navigate('/dotnet-login');
       return;
     }
 
-    if (profile) {
+    if (user) {
       setFormData({
-        firstName: profile.first_name || '',
-        lastName: profile.last_name || '',
-        username: profile.username || '',
-        phoneNumber: profile.phone_number || '',
+        firstName: user.firstName || '',
+        lastName: user.lastName || '',
+        username: '',
+        phoneNumber: '',
       });
     }
-  }, [user, profile, navigate]);
+  }, [user, isAuthenticated, navigate]);
 
   const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     try {
-      const { error } = await supabase
-        .from('profiles')
-        .update({
-          first_name: formData.firstName,
-          last_name: formData.lastName,
-          username: formData.username,
-          phone_number: formData.phoneNumber,
-        })
-        .eq('id', user?.id);
-
-      if (error) throw error;
-
-      await refreshProfile();
+      // Note: User profile update endpoints need to be added to your .NET API
       toast({
-        title: 'Success',
-        description: 'Profile updated successfully',
+        title: 'Coming Soon',
+        description: 'Profile update endpoints need to be added to your .NET API',
       });
     } catch (error: any) {
       toast({
@@ -79,31 +67,10 @@ const ProfileSettings = () => {
 
     setUploading(true);
     try {
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${user.id}-${Math.random()}.${fileExt}`;
-      const filePath = `${user.id}/${fileName}`;
-
-      const { error: uploadError } = await supabase.storage
-        .from('avatars')
-        .upload(filePath, file, { upsert: true });
-
-      if (uploadError) throw uploadError;
-
-      const { data: { publicUrl } } = supabase.storage
-        .from('avatars')
-        .getPublicUrl(filePath);
-
-      const { error: updateError } = await supabase
-        .from('profiles')
-        .update({ avatar_url: publicUrl })
-        .eq('id', user.id);
-
-      if (updateError) throw updateError;
-
-      await refreshProfile();
+      // Note: File upload endpoints need to be added to your .NET API
       toast({
-        title: 'Success',
-        description: 'Avatar updated successfully',
+        title: 'Coming Soon',
+        description: 'Avatar upload endpoints need to be added to your .NET API',
       });
     } catch (error: any) {
       toast({
@@ -117,8 +84,8 @@ const ProfileSettings = () => {
   };
 
   const getInitials = () => {
-    if (!profile) return 'U';
-    return `${profile.first_name?.[0] || ''}${profile.last_name?.[0] || ''}`.toUpperCase() || 'U';
+    if (!user) return 'U';
+    return `${user.firstName?.[0] || ''}${user.lastName?.[0] || ''}`.toUpperCase() || 'U';
   };
 
   return (
@@ -136,7 +103,7 @@ const ProfileSettings = () => {
           </CardHeader>
           <CardContent className="flex items-center gap-4">
             <Avatar className="h-24 w-24">
-              <AvatarImage src={profile?.avatar_url} />
+              <AvatarImage src={undefined} />
               <AvatarFallback className="text-2xl">{getInitials()}</AvatarFallback>
             </Avatar>
             <div>
@@ -198,17 +165,17 @@ const ProfileSettings = () => {
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={user?.email || ''}
-                  disabled
-                  className="bg-muted"
-                />
-                <p className="text-xs text-muted-foreground">Email cannot be changed</p>
-              </div>
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    value={user?.email || ''}
+                    disabled
+                    className="bg-muted"
+                  />
+                  <p className="text-xs text-muted-foreground">Email cannot be changed</p>
+                </div>
 
               <div className="space-y-2">
                 <Label htmlFor="phoneNumber">Phone Number</Label>
