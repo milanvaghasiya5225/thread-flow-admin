@@ -1,5 +1,8 @@
 # Migration to .NET API - Summary
 
+> **⚠️ DATABASE MIGRATION REQUIRED**: See `database-migration.sql` for required schema changes
+> **📋 API IMPROVEMENTS**: See `API-IMPROVEMENTS.md` for detailed endpoint specifications
+
 ## ✅ Completed Changes
 
 ### 1. **Authentication System**
