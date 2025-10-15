@@ -18,6 +18,7 @@ import type {
   UpdateContactMessageRequest,
   LoginPasswordlessRequest
 } from '@/types/api';
+import { ErrorType } from '@/types/api';
 
 // Configure your API base URL here
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://localhost:5001';
@@ -43,6 +44,31 @@ class ApiClient {
 
   getToken(): string | null {
     return this.token;
+  }
+
+  private decodeToken(token: string): UserResponse {
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      return {
+        id: payload['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier'] || '',
+        email: payload['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress'] || '',
+        firstName: payload['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name']?.split(' ')[0] || '',
+        lastName: payload['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name']?.split(' ').slice(1).join(' ') || '',
+        phone: payload.phone || undefined,
+        emailVerified: true,
+        phoneVerified: false
+      };
+    } catch (error) {
+      console.error('Failed to decode token:', error);
+      return {
+        id: '',
+        email: '',
+        firstName: '',
+        lastName: '',
+        emailVerified: false,
+        phoneVerified: false
+      };
+    }
   }
 
   private async request<T>(
@@ -82,16 +108,49 @@ class ApiClient {
   }
 
   async login(data: LoginRequest): Promise<ApiResult<LoginResponse>> {
-    const result = await this.request<ApiResult<LoginResponse>>('/users/login', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    });
-    
-    if (result.isSuccess && result.value?.token) {
-      this.setToken(result.value.token);
+    try {
+      const response = await this.request<{ token: string }>('/users/login', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      });
+      
+      // API returns { token: "..." } directly, not wrapped in ApiResult
+      if (response.token) {
+        this.setToken(response.token);
+        
+        // Decode JWT to extract user info
+        const user = this.decodeToken(response.token);
+        
+        return {
+          isSuccess: true,
+          isFailure: false,
+          value: {
+            token: response.token,
+            user
+          }
+        };
+      }
+      
+      return {
+        isSuccess: false,
+        isFailure: true,
+        error: {
+          code: 'LOGIN_FAILED',
+          description: 'Invalid response from server',
+          type: ErrorType.Failure
+        }
+      };
+    } catch (error) {
+      return {
+        isSuccess: false,
+        isFailure: true,
+        error: {
+          code: 'LOGIN_FAILED',
+          description: error instanceof Error ? error.message : 'Login failed',
+          type: ErrorType.Failure
+        }
+      };
     }
-    
-    return result;
   }
 
   async loginPasswordless(data: LoginPasswordlessRequest): Promise<ApiResult<string>> {
