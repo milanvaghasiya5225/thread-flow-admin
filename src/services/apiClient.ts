@@ -49,6 +49,11 @@ class ApiClient {
   private decodeToken(token: string): UserResponse {
     try {
       const payload = JSON.parse(atob(token.split('.')[1]));
+      
+      // Extract roles - can be a string or an array
+      const rolesClaim = payload['http://schemas.microsoft.com/ws/2008/06/identity/claims/role'];
+      const roles = rolesClaim ? (Array.isArray(rolesClaim) ? rolesClaim : [rolesClaim]) : [];
+      
       return {
         id: payload['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier'] || '',
         email: payload['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress'] || '',
@@ -56,7 +61,8 @@ class ApiClient {
         lastName: payload['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name']?.split(' ').slice(1).join(' ') || '',
         phone: payload.phone || undefined,
         emailVerified: true,
-        phoneVerified: false
+        phoneVerified: false,
+        roles
       };
     } catch (error) {
       console.error('Failed to decode token:', error);
@@ -66,7 +72,8 @@ class ApiClient {
         firstName: '',
         lastName: '',
         emailVerified: false,
-        phoneVerified: false
+        phoneVerified: false,
+        roles: []
       };
     }
   }

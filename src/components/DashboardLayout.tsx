@@ -35,9 +35,10 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showLogoutDialog, setShowLogoutDialog] = useState(false);
 
-  // Note: Role management needs to be added to your .NET API
-  const isSuperAdmin = false; // TODO: Get from API when role endpoints are added
-  const isAdmin = true; // TODO: Get from API when role endpoints are added
+  // Check user roles from JWT token
+  const userRoles = user?.roles || [];
+  const isSuperAdmin = userRoles.includes('super_admin');
+  const isAdmin = isSuperAdmin || userRoles.includes('admin');
 
   const menuItems = [
     { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard', show: isAdmin },

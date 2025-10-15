@@ -89,6 +89,7 @@ export interface UserResponse {
   phone?: string;
   emailVerified: boolean;
   phoneVerified: boolean;
+  roles?: string[];
 }
 
 export interface LoginResponse {
