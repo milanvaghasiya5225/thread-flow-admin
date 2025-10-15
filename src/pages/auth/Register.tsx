@@ -10,6 +10,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { SmartContactInput } from '@/components/auth/SmartContactInput';
 
 const registerSchema = z.object({
   firstName: z.string()
@@ -150,13 +151,12 @@ const Register = () => {
                 name="phone"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Phone</FormLabel>
                     <FormControl>
-                      <Input
-                        {...field}
-                        type="tel"
-                        placeholder="+1234567890"
+                      <SmartContactInput
+                        value={field.value}
+                        onChange={(value) => field.onChange(value)}
                         disabled={loading}
+                        phoneOnly={true}
                       />
                     </FormControl>
                     <FormMessage />

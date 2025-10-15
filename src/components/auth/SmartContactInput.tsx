@@ -34,17 +34,19 @@ interface SmartContactInputProps {
   onChange: (value: string, isPhone: boolean) => void;
   disabled?: boolean;
   error?: string;
+  phoneOnly?: boolean;
 }
 
 export const SmartContactInput = ({ 
   value, 
   onChange, 
   disabled,
-  error 
+  error,
+  phoneOnly = false
 }: SmartContactInputProps) => {
   const [selectedCountry, setSelectedCountry] = useState<CountryCode>(COUNTRY_CODES[0]);
   const [inputValue, setInputValue] = useState('');
-  const [isPhone, setIsPhone] = useState(false);
+  const [isPhone, setIsPhone] = useState(phoneOnly);
 
   useEffect(() => {
     // Auto-detect if input is email or phone
@@ -52,7 +54,7 @@ export const SmartContactInput = ({
     const containsAt = trimmedValue.includes('@');
     const isNumeric = /^\d+$/.test(trimmedValue.replace(/\s/g, ''));
     
-    const shouldBePhone = !containsAt && isNumeric && trimmedValue.length > 0;
+    const shouldBePhone = phoneOnly || (!containsAt && isNumeric && trimmedValue.length > 0);
     setIsPhone(shouldBePhone);
 
     // Construct the full value
@@ -62,7 +64,7 @@ export const SmartContactInput = ({
     }
 
     onChange(fullValue, shouldBePhone);
-  }, [inputValue, selectedCountry, onChange]);
+  }, [inputValue, selectedCountry, onChange, phoneOnly]);
 
   const handleCountryChange = (countryCode: string) => {
     const country = COUNTRY_CODES.find(c => c.code === countryCode);
@@ -77,7 +79,7 @@ export const SmartContactInput = ({
 
   return (
     <div className="space-y-2">
-      <Label htmlFor="contact">Email or Phone Number</Label>
+      <Label htmlFor="contact">{phoneOnly ? 'Phone Number' : 'Email or Phone Number'}</Label>
       <div className="flex gap-2">
         {isPhone && (
           <Select
@@ -130,7 +132,7 @@ export const SmartContactInput = ({
       <p className="text-xs text-muted-foreground">
         {isPhone 
           ? `We'll send a verification code to ${selectedCountry.dialCode}${inputValue}`
-          : "Enter your email or start typing numbers for phone"}
+          : phoneOnly ? "Enter your phone number" : "Enter your email or start typing numbers for phone"}
       </p>
     </div>
   );
