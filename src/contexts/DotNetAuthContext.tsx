@@ -11,7 +11,8 @@ interface AuthContextType {
     firstName: string;
     lastName: string;
     email: string;
-    phone?: string;
+    userName: string;
+    phone: string;
     password: string;
   }) => Promise<void>;
   logout: () => void;
@@ -104,7 +105,8 @@ export const DotNetAuthProvider = ({ children }: DotNetAuthProviderProps) => {
     firstName: string;
     lastName: string;
     email: string;
-    phone?: string;
+    userName: string;
+    phone: string;
     password: string;
   }) => {
     try {

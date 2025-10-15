@@ -32,7 +32,8 @@ export interface RegisterRequest {
   firstName: string;
   lastName: string;
   email: string;
-  phone?: string;
+  userName: string; // Username field (typically set to email)
+  phone: string; // Required field as per API spec
   password: string;
 }
 

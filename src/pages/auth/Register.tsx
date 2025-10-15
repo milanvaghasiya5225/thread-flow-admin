@@ -67,6 +67,7 @@ const Register = () => {
         firstName: data.firstName,
         lastName: data.lastName,
         email: data.email,
+        userName: data.email, // userName is set to email as per API requirements
         phone: data.phone,
         password: data.password,
       });
