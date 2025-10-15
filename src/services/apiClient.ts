@@ -143,8 +143,9 @@ class ApiClient {
         };
       }
 
-      this.setToken(token);
-
+      // Don't set token here - 2FA required
+      // Token will be set after OTP verification
+      
       // Decode JWT to extract user info
       const user = this.decodeToken(token);
 

@@ -5,7 +5,7 @@ import type { UserResponse, LoginPasswordlessRequest, OtpPurpose } from '@/types
 interface AuthContextType {
   user: UserResponse | null;
   loading: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<{ requiresOtp: boolean; email: string }>;
   loginWithOtp: (data: LoginPasswordlessRequest) => Promise<{ success: boolean; contact: string; medium: string }>;
   register: (data: {
     firstName: string;
@@ -51,15 +51,25 @@ export const DotNetAuthProvider = ({ children }: DotNetAuthProviderProps) => {
 
   const login = async (email: string, password: string) => {
     try {
+      // Step 1: Validate password (but don't save token yet for 2FA)
       const result = await apiClient.login({ email, password });
       
       if (!result.isSuccess) {
         throw new Error(result.error?.description || 'Login failed');
       }
 
-      if (result.value) {
-        setUser(result.value.user);
+      // Step 2: Send OTP for 2FA
+      const otpResult = await apiClient.loginPasswordless({ 
+        medium: 'email', 
+        email 
+      });
+      
+      if (!otpResult.isSuccess) {
+        throw new Error(otpResult.error?.description || 'Failed to send 2FA code');
       }
+
+      // Return success - user needs to verify OTP
+      return { requiresOtp: true, email };
     } catch (error) {
       console.error('Login error:', error);
       throw error;

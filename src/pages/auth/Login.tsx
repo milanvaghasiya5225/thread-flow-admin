@@ -68,12 +68,22 @@ const Login = () => {
     setLoading(true);
 
     try {
-      await login(data.email, data.password);
-      toast({
-        title: 'Success',
-        description: 'Logged in successfully',
-      });
-      navigate('/dashboard');
+      const result = await login(data.email, data.password);
+      
+      if (result.requiresOtp) {
+        toast({
+          title: '2FA Required',
+          description: 'Verification code sent to your email',
+        });
+        
+        navigate('/otp-verification', {
+          state: {
+            contact: result.email,
+            purpose: OtpPurpose.Login,
+            medium: 'email',
+          },
+        });
+      }
     } catch (error) {
       toast({
         title: 'Error',
