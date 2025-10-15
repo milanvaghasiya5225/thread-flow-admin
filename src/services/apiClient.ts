@@ -33,6 +33,23 @@ import { ErrorType } from '@/types/api';
 // Configure your API base URL here
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://localhost:5001';
 
+// User-friendly error messages mapped by error codes
+const USER_FRIENDLY_ERRORS: Record<string, string> = {
+  'AUTH_001': 'Invalid email or password. Please try again.',
+  'AUTH_002': 'Your session has expired. Please log in again.',
+  'AUTH_003': 'Too many login attempts. Please try again later.',
+  'OTP_001': 'Invalid verification code. Please check and try again.',
+  'OTP_002': 'Verification code has expired. Please request a new one.',
+  'OTP_003': 'Too many verification attempts. Please request a new code.',
+  'USER_001': 'User not found.',
+  'USER_002': 'Email already registered. Please use a different email.',
+  'USER_003': 'Phone number already registered.',
+  'VALIDATION_001': 'Invalid input. Please check your information.',
+  'PERMISSION_001': 'You do not have permission to perform this action.',
+  'RATE_LIMIT': 'Too many requests. Please wait a moment and try again.',
+  'default': 'Something went wrong. Please try again later.'
+};
+
 class ApiClient {
   private baseUrl: string;
   private token: string | null = null;
@@ -75,7 +92,9 @@ class ApiClient {
         roles
       };
     } catch (error) {
-      console.error('Failed to decode token:', error);
+      if (import.meta.env.DEV) {
+        console.error('Failed to decode token:', error);
+      }
       return {
         id: '',
         email: '',
@@ -107,10 +126,26 @@ class ApiClient {
     });
 
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({
-        error: { description: 'An error occurred', type: 'Failure' }
-      }));
-      throw new Error(errorData.error?.description || 'Request failed');
+      // Parse error payload safely
+      const payload = await response.json().catch(() => null);
+      const errorCode = payload?.error?.code || 'default';
+      const userMessage = USER_FRIENDLY_ERRORS[errorCode] || USER_FRIENDLY_ERRORS.default;
+
+      // Log detailed error info only in development
+      if (import.meta.env.DEV) {
+        console.error('API error:', {
+          endpoint,
+          status: response.status,
+          payload
+        });
+      }
+
+      // Handle 401 Unauthorized - clear token and logout
+      if (response.status === 401) {
+        this.logout();
+      }
+
+      throw new Error(userMessage);
     }
 
     return response.json();
@@ -168,6 +203,9 @@ class ApiClient {
         },
       };
     } catch (error) {
+      if (import.meta.env.DEV) {
+        console.error('Login error:', error);
+      }
       return {
         isSuccess: false,
         isFailure: true,

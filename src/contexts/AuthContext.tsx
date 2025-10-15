@@ -39,15 +39,30 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Check if user is already logged in
+    // Restore auth state on mount if token exists
     const token = apiClient.getToken();
-    if (token) {
-      // TODO: You might want to add a /users/me endpoint to get current user
-      // For now, we'll just set loading to false
+    if (!token) {
       setLoading(false);
-    } else {
-      setLoading(false);
+      return;
     }
+
+    // Fetch current user to restore session
+    (async () => {
+      try {
+        const result = await apiClient.getCurrentUser();
+        if (result.isSuccess && result.value) {
+          setUser(result.value);
+        } else {
+          // Token exists but user fetch failed - clear invalid token
+          apiClient.logout();
+        }
+      } catch (error) {
+        // Network error or invalid token - clear and logout
+        apiClient.logout();
+      } finally {
+        setLoading(false);
+      }
+    })();
   }, []);
 
   const login = async (email: string, password: string) => {
@@ -72,7 +87,9 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       // Return success - user needs to verify OTP
       return { requiresOtp: true, email };
     } catch (error) {
-      console.error('Login error:', error);
+      if (import.meta.env.DEV) {
+        console.error('Login error:', error);
+      }
       throw error;
     }
   };
@@ -92,7 +109,9 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         medium: data.email ? 'email' : 'phone'
       };
     } catch (error) {
-      console.error('Login with OTP error:', error);
+      if (import.meta.env.DEV) {
+        console.error('Login with OTP error:', error);
+      }
       throw error;
     }
   };
@@ -119,7 +138,9 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       // After registration, you might want to automatically log in
       // or redirect to verification page
     } catch (error) {
-      console.error('Registration error:', error);
+      if (import.meta.env.DEV) {
+        console.error('Registration error:', error);
+      }
       throw error;
     }
   };
