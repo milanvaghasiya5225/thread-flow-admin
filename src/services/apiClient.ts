@@ -10,12 +10,22 @@ import type {
   RequestForgotPasswordRequest,
   ResetPasswordRequest,
   UserResponse,
-  Product,
-  CreateProductRequest,
-  UpdateProductRequest,
   ContactMessage,
   CreateContactMessageRequest,
   UpdateContactMessageRequest,
+  SendMessageRequest,
+  ContactStatistics,
+  MonthlyStatistics,
+  GetContactsParams,
+  UpdateMeRequest,
+  UpdateStatusRequest,
+  GetUsersParams,
+  AssignRoleRequest,
+  RoleInfo,
+  Todo,
+  CreateTodoRequest,
+  RoleAuditLog,
+  GetAuditLogsParams,
   LoginPasswordlessRequest
 } from '@/types/api';
 import { ErrorType } from '@/types/api';
@@ -197,10 +207,13 @@ class ApiClient {
     });
   }
 
-  async getVerificationStatus(data: VerificationStatusRequest): Promise<ApiResult> {
-    return this.request<ApiResult>('/users/verification-status', {
-      method: 'POST',
-      body: JSON.stringify(data),
+  async getVerificationStatus(email?: string, phone?: string): Promise<ApiResult> {
+    const params = new URLSearchParams();
+    if (email) params.append('email', email);
+    if (phone) params.append('phone', phone);
+    const queryString = params.toString();
+    return this.request<ApiResult>(`/users/verification-status${queryString ? `?${queryString}` : ''}`, {
+      method: 'GET',
     });
   }
 
@@ -231,50 +244,49 @@ class ApiClient {
     });
   }
 
-  logout() {
-    this.setToken(null);
-  }
-
-  // Products endpoints
-  async getProducts(query?: string): Promise<ApiResult<Product[]>> {
-    const url = query ? `/products?q=${encodeURIComponent(query)}` : '/products';
-    return this.request<ApiResult<Product[]>>(url, {
+  async getUsers(params?: GetUsersParams): Promise<ApiResult<UserResponse[]>> {
+    const queryParams = new URLSearchParams();
+    if (params?.page) queryParams.append('page', params.page.toString());
+    if (params?.pageSize) queryParams.append('pageSize', params.pageSize.toString());
+    const queryString = queryParams.toString();
+    return this.request<ApiResult<UserResponse[]>>(`/users${queryString ? `?${queryString}` : ''}`, {
       method: 'GET',
     });
   }
 
-  async getProductById(id: number): Promise<ApiResult<Product>> {
-    return this.request<ApiResult<Product>>(`/products/${id}`, {
+  async getCurrentUser(): Promise<ApiResult<UserResponse>> {
+    return this.request<ApiResult<UserResponse>>('/users/me', {
       method: 'GET',
     });
   }
 
-  async createProduct(data: CreateProductRequest): Promise<ApiResult<Product>> {
-    return this.request<ApiResult<Product>>('/products', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    });
-  }
-
-  async updateProduct(id: number, data: UpdateProductRequest): Promise<ApiResult<Product>> {
-    return this.request<ApiResult<Product>>(`/products/${id}`, {
+  async updateCurrentUser(data: UpdateMeRequest): Promise<ApiResult<UserResponse>> {
+    return this.request<ApiResult<UserResponse>>('/users/me', {
       method: 'PUT',
       body: JSON.stringify(data),
     });
   }
 
-  async deleteProduct(id: number): Promise<ApiResult> {
-    return this.request<ApiResult>(`/products/${id}`, {
-      method: 'DELETE',
+  async updateUserStatus(userId: string, data: UpdateStatusRequest): Promise<ApiResult> {
+    return this.request<ApiResult>(`/users/${userId}/status`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
     });
   }
 
+  logout() {
+    this.setToken(null);
+  }
+
   // Contact Us endpoints
-  async getContactMessages(onlyUnresolved?: boolean): Promise<ApiResult<ContactMessage[]>> {
-    const url = onlyUnresolved !== undefined 
-      ? `/contact-us?onlyUnresolved=${onlyUnresolved}` 
-      : '/contact-us';
-    return this.request<ApiResult<ContactMessage[]>>(url, {
+  async getContactMessages(params: GetContactsParams): Promise<ApiResult<ContactMessage[]>> {
+    const queryParams = new URLSearchParams();
+    if (params.status) queryParams.append('status', params.status);
+    if (params.assignedTo) queryParams.append('assignedTo', params.assignedTo);
+    if (params.search) queryParams.append('search', params.search);
+    queryParams.append('page', params.page.toString());
+    queryParams.append('pageSize', params.pageSize.toString());
+    return this.request<ApiResult<ContactMessage[]>>(`/contact-us?${queryParams.toString()}`, {
       method: 'GET',
     });
   }
@@ -302,6 +314,101 @@ class ApiClient {
   async deleteContactMessage(id: string): Promise<ApiResult> {
     return this.request<ApiResult>(`/contact-us/${id}`, {
       method: 'DELETE',
+    });
+  }
+
+  async sendContactMessage(id: string, data: SendMessageRequest): Promise<ApiResult> {
+    return this.request<ApiResult>(`/contact-us/${id}/messages`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async markMessageAsRead(messageId: string): Promise<ApiResult> {
+    return this.request<ApiResult>(`/messages/${messageId}/read`, {
+      method: 'PUT',
+    });
+  }
+
+  async getContactStatistics(): Promise<ApiResult<ContactStatistics>> {
+    return this.request<ApiResult<ContactStatistics>>('/contact-us/statistics', {
+      method: 'GET',
+    });
+  }
+
+  async getMonthlyStatistics(months?: number): Promise<ApiResult<MonthlyStatistics[]>> {
+    const url = months ? `/contact-us/statistics/monthly?months=${months}` : '/contact-us/statistics/monthly';
+    return this.request<ApiResult<MonthlyStatistics[]>>(url, {
+      method: 'GET',
+    });
+  }
+
+  // Role Management endpoints
+  async getUserRoles(userId: string): Promise<ApiResult<RoleInfo[]>> {
+    return this.request<ApiResult<RoleInfo[]>>(`/users/${userId}/roles`, {
+      method: 'GET',
+    });
+  }
+
+  async getAllRoles(): Promise<ApiResult<RoleInfo[]>> {
+    return this.request<ApiResult<RoleInfo[]>>('/roles', {
+      method: 'GET',
+    });
+  }
+
+  async assignRole(userId: string, data: AssignRoleRequest): Promise<ApiResult> {
+    return this.request<ApiResult>(`/users/${userId}/roles`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async removeRole(userId: string, roleId: string): Promise<ApiResult> {
+    return this.request<ApiResult>(`/users/${userId}/roles/${roleId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  // Todo endpoints
+  async getTodos(userId: string): Promise<ApiResult<Todo[]>> {
+    return this.request<ApiResult<Todo[]>>(`/todos?userId=${userId}`, {
+      method: 'GET',
+    });
+  }
+
+  async getTodoById(id: string): Promise<ApiResult<Todo>> {
+    return this.request<ApiResult<Todo>>(`/todos/${id}`, {
+      method: 'GET',
+    });
+  }
+
+  async createTodo(data: CreateTodoRequest): Promise<ApiResult<Todo>> {
+    return this.request<ApiResult<Todo>>('/todos', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async completeTodo(id: string): Promise<ApiResult> {
+    return this.request<ApiResult>(`/todos/${id}/complete`, {
+      method: 'PUT',
+    });
+  }
+
+  async deleteTodo(id: string): Promise<ApiResult> {
+    return this.request<ApiResult>(`/todos/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  // Audit endpoints
+  async getRoleAuditLogs(params: GetAuditLogsParams): Promise<ApiResult<RoleAuditLog[]>> {
+    const queryParams = new URLSearchParams();
+    if (params.userId) queryParams.append('userId', params.userId);
+    queryParams.append('page', params.page.toString());
+    queryParams.append('pageSize', params.pageSize.toString());
+    return this.request<ApiResult<RoleAuditLog[]>>(`/audit/roles?${queryParams.toString()}`, {
+      method: 'GET',
     });
   }
 }

@@ -38,7 +38,10 @@ const Dashboard = () => {
   const fetchDashboardData = async () => {
     try {
       // Fetch contact messages from the API
-      const result = await apiClient.getContactMessages();
+      const result = await apiClient.getContactMessages({
+        page: 1,
+        pageSize: 1000
+      });
       
       if (result.isSuccess && result.value) {
         const contacts = result.value;

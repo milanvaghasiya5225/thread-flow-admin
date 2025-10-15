@@ -129,6 +129,8 @@ export interface ContactMessage {
   message: string;
   createdAtUtc: string;
   isResolved: boolean;
+  status?: string;
+  assignedTo?: string;
 }
 
 export interface CreateContactMessageRequest {
@@ -140,11 +142,101 @@ export interface CreateContactMessageRequest {
 }
 
 export interface UpdateContactMessageRequest {
-  id: string;
   name?: string;
   email?: string;
   phone?: string;
   subject?: string;
   message?: string;
-  isResolved?: boolean;
+  status?: string;
+  statusComment?: string;
+  assignedTo?: string;
+}
+
+export interface SendMessageRequest {
+  content: string;
+  sendEmail: boolean;
+  sendSms: boolean;
+}
+
+export interface ContactStatistics {
+  total: number;
+  new: number;
+  inProgress: number;
+  resolved: number;
+}
+
+export interface MonthlyStatistics {
+  month: string;
+  count: number;
+}
+
+export interface GetContactsParams {
+  status?: string;
+  assignedTo?: string;
+  search?: string;
+  page: number;
+  pageSize: number;
+}
+
+// User Management Types
+export interface UpdateMeRequest {
+  firstName?: string;
+  lastName?: string;
+  phone?: string;
+}
+
+export interface UpdateStatusRequest {
+  isActive: boolean;
+}
+
+export interface GetUsersParams {
+  page?: number;
+  pageSize?: number;
+}
+
+// Role Management Types
+export interface AssignRoleRequest {
+  roleId: string;
+}
+
+export interface RoleInfo {
+  id: string;
+  name: string;
+}
+
+// Todo Types
+export interface Todo {
+  id: string;
+  userId: string;
+  description: string;
+  dueDate?: string;
+  labels?: string[];
+  priority: number;
+  isCompleted: boolean;
+  createdAtUtc: string;
+}
+
+export interface CreateTodoRequest {
+  userId: string;
+  description: string;
+  dueDate?: string;
+  labels?: string[];
+  priority: number;
+}
+
+// Audit Types
+export interface RoleAuditLog {
+  id: string;
+  userId: string;
+  role: string;
+  action: string;
+  performedBy?: string;
+  reason?: string;
+  createdAt: string;
+}
+
+export interface GetAuditLogsParams {
+  userId?: string;
+  page: number;
+  pageSize: number;
 }

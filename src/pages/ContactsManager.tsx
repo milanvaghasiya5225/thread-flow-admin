@@ -40,8 +40,11 @@ const ContactsManager = () => {
 
   const fetchContacts = async () => {
     try {
-      const onlyUnresolved = statusFilter === 'all' ? undefined : statusFilter === 'unresolved';
-      const result = await apiClient.getContactMessages(onlyUnresolved);
+      const result = await apiClient.getContactMessages({
+        status: statusFilter === 'all' ? undefined : statusFilter,
+        page: 1,
+        pageSize: 100
+      });
       
       if (result.isSuccess && result.value) {
         setContacts(result.value);
@@ -57,8 +60,7 @@ const ContactsManager = () => {
     setLoading(true);
     try {
       const result = await apiClient.updateContactMessage(selectedContact.id, {
-        id: selectedContact.id,
-        isResolved
+        status: isResolved ? 'resolved' : 'pending'
       });
 
       if (!result.isSuccess) {
