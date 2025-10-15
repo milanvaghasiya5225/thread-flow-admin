@@ -27,7 +27,6 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Navigate to="/login" replace />} />
             <Route path="/login" element={<Login />} />
-            <Route path="/dotnet-login" element={<Login />} />
             <Route path="/register" element={<Register />} />
             <Route path="/otp-verification" element={<OtpVerification />} />
             <Route path="/dashboard" element={<Dashboard />} />
