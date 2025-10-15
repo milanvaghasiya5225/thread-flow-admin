@@ -2,12 +2,15 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { apiClient } from '@/services/apiClient';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { OtpPurpose } from '@/types/api';
 import { useDotNetAuth } from '@/contexts/DotNetAuthContext';
+import {
+  InputOTP,
+  InputOTPGroup,
+  InputOTPSlot,
+} from '@/components/ui/input-otp';
 
 const OtpVerification = () => {
   const navigate = useNavigate();
@@ -126,20 +129,26 @@ const OtpVerification = () => {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleVerify} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="otp">Verification Code</Label>
-              <Input
-                id="otp"
-                type="text"
-                placeholder="Enter 6-digit code"
-                value={otp}
-                onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+          <form onSubmit={handleVerify} className="space-y-6">
+            <div className="flex flex-col items-center space-y-4">
+              <InputOTP
                 maxLength={6}
-                required
+                value={otp}
+                onChange={setOtp}
                 disabled={loading}
-                className="text-center text-2xl tracking-widest"
-              />
+              >
+                <InputOTPGroup>
+                  <InputOTPSlot index={0} />
+                  <InputOTPSlot index={1} />
+                  <InputOTPSlot index={2} />
+                  <InputOTPSlot index={3} />
+                  <InputOTPSlot index={4} />
+                  <InputOTPSlot index={5} />
+                </InputOTPGroup>
+              </InputOTP>
+              <p className="text-sm text-muted-foreground text-center">
+                Enter the 6-digit verification code
+              </p>
             </div>
             <Button type="submit" className="w-full" disabled={loading || otp.length !== 6}>
               {loading ? 'Verifying...' : 'Verify Code'}

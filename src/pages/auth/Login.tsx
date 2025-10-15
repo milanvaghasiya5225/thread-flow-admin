@@ -3,7 +3,6 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useDotNetAuth } from '@/contexts/DotNetAuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
@@ -12,6 +11,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { SmartContactInput } from '@/components/auth/SmartContactInput';
 
 const passwordLoginSchema = z.object({
   email: z.string()
@@ -23,18 +23,9 @@ const passwordLoginSchema = z.object({
 });
 
 const otpLoginSchema = z.object({
-  email: z.string()
-    .email('Invalid email address')
-    .max(255, 'Email must not exceed 255 characters')
-    .optional()
-    .or(z.literal('')),
-  phone: z.string()
-    .regex(/^\+?[1-9]\d{1,14}$/, 'Invalid phone number format (use international format like +1234567890)')
-    .optional()
-    .or(z.literal('')),
-}).refine((data) => data.email || data.phone, {
-  message: "Either email or phone is required",
-  path: ["email"],
+  contact: z.string()
+    .min(1, 'Email or phone number is required')
+    .max(255, 'Input must not exceed 255 characters'),
 });
 
 type PasswordLoginData = z.infer<typeof passwordLoginSchema>;
@@ -45,8 +36,9 @@ const Login = () => {
   const { login, loginWithOtp } = useDotNetAuth();
   const { toast } = useToast();
   
-  const [otpMedium, setOtpMedium] = useState<'email' | 'phone'>('email');
   const [loading, setLoading] = useState(false);
+  const [contactValue, setContactValue] = useState('');
+  const [isPhoneInput, setIsPhoneInput] = useState(false);
 
   const passwordForm = useForm<PasswordLoginData>({
     resolver: zodResolver(passwordLoginSchema),
@@ -59,8 +51,7 @@ const Login = () => {
   const otpForm = useForm<OtpLoginData>({
     resolver: zodResolver(otpLoginSchema),
     defaultValues: {
-      email: '',
-      phone: '',
+      contact: '',
     },
   });
 
@@ -99,16 +90,18 @@ const Login = () => {
     setLoading(true);
 
     try {
-      const loginData = otpMedium === 'email' 
-        ? { medium: 'email' as const, email: data.email! }
-        : { medium: 'phone' as const, phone: data.phone! };
+      // Determine if it's email or phone based on the contact value
+      const isEmail = contactValue.includes('@');
+      const loginData = isEmail
+        ? { medium: 'email' as const, email: contactValue }
+        : { medium: 'phone' as const, phone: contactValue };
 
       const result = await loginWithOtp(loginData);
       
       if (result.success) {
         toast({
           title: 'OTP Sent',
-          description: `Verification code sent to your ${otpMedium}`,
+          description: `Verification code sent to your ${isEmail ? 'email' : 'phone'}`,
         });
         
         navigate('/otp-verification', {
@@ -128,6 +121,12 @@ const Login = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleContactChange = (value: string, isPhone: boolean) => {
+    setContactValue(value);
+    setIsPhoneInput(isPhone);
+    otpForm.setValue('contact', value);
   };
 
   return (
@@ -202,63 +201,29 @@ const Login = () => {
             <TabsContent value="otp">
               <Form {...otpForm}>
                 <form onSubmit={otpForm.handleSubmit(onOtpLogin)} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label>Login with</Label>
-                    <Tabs value={otpMedium} onValueChange={(v) => setOtpMedium(v as 'email' | 'phone')}>
-                      <TabsList className="grid w-full grid-cols-2">
-                        <TabsTrigger value="email">Email</TabsTrigger>
-                        <TabsTrigger value="phone">Phone</TabsTrigger>
-                      </TabsList>
-                      
-                      <TabsContent value="email" className="mt-4">
-                        <FormField
-                          control={otpForm.control}
-                          name="email"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Email Address</FormLabel>
-                              <FormControl>
-                                <Input
-                                  {...field}
-                                  type="email"
-                                  placeholder="name@example.com"
-                                  disabled={loading}
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      </TabsContent>
-                      
-                      <TabsContent value="phone" className="mt-4">
-                        <FormField
-                          control={otpForm.control}
-                          name="phone"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Phone Number</FormLabel>
-                              <FormControl>
-                                <Input
-                                  {...field}
-                                  type="tel"
-                                  placeholder="+1234567890"
-                                  disabled={loading}
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      </TabsContent>
-                    </Tabs>
-                  </div>
-                  <Button type="submit" className="w-full" disabled={loading}>
+                  <FormField
+                    control={otpForm.control}
+                    name="contact"
+                    render={({ field, fieldState }) => (
+                      <FormItem>
+                        <FormControl>
+                          <SmartContactInput
+                            value={field.value}
+                            onChange={handleContactChange}
+                            disabled={loading}
+                            error={fieldState.error?.message}
+                          />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+                  <Button 
+                    type="submit" 
+                    className="w-full" 
+                    disabled={loading || !contactValue}
+                  >
                     {loading ? 'Sending OTP...' : 'Send OTP'}
                   </Button>
-                  <p className="text-xs text-center text-muted-foreground">
-                    We'll send a verification code to your {otpMedium}
-                  </p>
                 </form>
               </Form>
             </TabsContent>
