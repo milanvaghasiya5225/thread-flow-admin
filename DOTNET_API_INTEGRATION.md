@@ -8,7 +8,7 @@ I've created the complete integration layer for your .NET API. Here's what was a
 
 ### 1. Type Definitions (`src/types/api.ts`)
 - All TypeScript interfaces generated from your Swagger specification
-- Includes types for Users, Products, and Contact Messages
+- Includes types for Users and Contact Messages
 - Proper enum definitions for OtpPurpose and ErrorType
 
 ### 2. API Client (`src/services/apiClient.ts`)
@@ -66,12 +66,6 @@ Import and use the API client in your components:
 
 \`\`\`tsx
 import { apiClient } from '@/services/apiClient';
-
-// Get products
-const result = await apiClient.getProducts('search query');
-if (result.isSuccess && result.value) {
-  console.log(result.value); // Product[]
-}
 
 // Create contact message
 const contactResult = await apiClient.createContactMessage({
@@ -167,14 +161,7 @@ public async Task<Result<LoginResponse>> RefreshToken([FromBody] RefreshTokenReq
 ### 6. **Contact Us Status Codes**
 The GET `/contact-us` endpoint should return 200 with empty array instead of 404 when no messages exist.
 
-### 7. **Product Search Enhancement**
-Add more filter options to products:
-
-\`\`\`csharp
-GET /products?q=search&minPrice=10&maxPrice=100&inStock=true
-\`\`\`
-
-### 8. **Validation Error Details**
+### 7. **Validation Error Details**
 Return field-specific validation errors:
 
 \`\`\`csharp
@@ -184,7 +171,7 @@ public class ValidationError : Error
 }
 \`\`\`
 
-### 9. **Rate Limiting**
+### 8. **Rate Limiting**
 Add rate limiting headers to API responses for OTP endpoints:
 
 \`\`\`
@@ -193,7 +180,7 @@ X-RateLimit-Remaining: 4
 X-RateLimit-Reset: 1640000000
 \`\`\`
 
-### 10. **API Versioning**
+### 9. **API Versioning**
 Consider adding API versioning:
 
 \`\`\`
@@ -221,8 +208,7 @@ Consider adding API versioning:
 ## Next Steps
 
 1. Replace Supabase auth with .NET API auth in existing components
-2. Create Product management pages
-3. Create Contact message management UI
+2. Create Contact message management UI
 4. Add error boundary components
 5. Implement loading states
 6. Add form validation with zod

@@ -23,13 +23,6 @@
 ### Users
 - `GET /users/{userId}` - Get user by ID
 
-### Products
-- `GET /products` - Get all products
-- `GET /products/{id}` - Get product by ID
-- `POST /products` - Create product
-- `PUT /products/{id}` - Update product
-- `DELETE /products/{id}` - Delete product
-
 ### Contact Messages
 - `GET /contact-us` - Get all contact messages
 - `GET /contact-us/{id}` - Get contact message by ID
