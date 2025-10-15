@@ -17,30 +17,32 @@ import OtpVerification from "./pages/auth/OtpVerification";
 
 const queryClient = new QueryClient();
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <DotNetAuthProvider>
-          <Routes>
-            <Route path="/" element={<Navigate to="/login" replace />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
-            <Route path="/otp-verification" element={<OtpVerification />} />
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/contacts" element={<ContactsManager />} />
-            <Route path="/contacts-page" element={<ContactsPage />} />
-            <Route path="/users" element={<UsersList />} />
-            <Route path="/roles" element={<RoleManagement />} />
-            <Route path="/profile" element={<ProfileSettings />} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </DotNetAuthProvider>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
-);
+const App = () => {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <DotNetAuthProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <Routes>
+              <Route path="/" element={<Navigate to="/login" replace />} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/register" element={<Register />} />
+              <Route path="/otp-verification" element={<OtpVerification />} />
+              <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/contacts" element={<ContactsManager />} />
+              <Route path="/contacts-page" element={<ContactsPage />} />
+              <Route path="/users" element={<UsersList />} />
+              <Route path="/roles" element={<RoleManagement />} />
+              <Route path="/profile" element={<ProfileSettings />} />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </BrowserRouter>
+        </TooltipProvider>
+      </DotNetAuthProvider>
+    </QueryClientProvider>
+  );
+};
 
 export default App;
