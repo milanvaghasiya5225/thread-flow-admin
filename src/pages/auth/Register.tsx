@@ -24,9 +24,8 @@ const registerSchema = z.object({
     .email('Invalid email address')
     .max(255, 'Email must not exceed 255 characters'),
   phone: z.string()
-    .regex(/^\+?[1-9]\d{1,14}$/, 'Invalid phone number format (use international format like +1234567890)')
-    .optional()
-    .or(z.literal('')),
+    .min(1, 'Phone number is required')
+    .regex(/^\+?[1-9]\d{1,14}$/, 'Invalid phone number format (use international format like +1234567890)'),
   password: z.string()
     .min(8, 'Password must be at least 8 characters')
     .max(100, 'Password must not exceed 100 characters')
@@ -67,7 +66,7 @@ const Register = () => {
         firstName: data.firstName,
         lastName: data.lastName,
         email: data.email,
-        phone: data.phone || undefined,
+        phone: data.phone,
         password: data.password,
       });
 
@@ -151,7 +150,7 @@ const Register = () => {
                 name="phone"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Phone (Optional)</FormLabel>
+                    <FormLabel>Phone</FormLabel>
                     <FormControl>
                       <Input
                         {...field}
