@@ -109,36 +109,45 @@ class ApiClient {
 
   async login(data: LoginRequest): Promise<ApiResult<LoginResponse>> {
     try {
-      const response = await this.request<{ token: string }>('/users/login', {
+      // Accept multiple possible response shapes from the server
+      // 1) { token: string }
+      // 2) { success: boolean, statusCode: number, message: string | null, data: { token: string } }
+      // 3) { isSuccess: boolean, value: { token: string } }
+      const raw = await this.request<any>('/users/login', {
         method: 'POST',
         body: JSON.stringify(data),
       });
-      
-      // API returns { token: "..." } directly, not wrapped in ApiResult
-      if (response.token) {
-        this.setToken(response.token);
-        
-        // Decode JWT to extract user info
-        const user = this.decodeToken(response.token);
-        
+
+      const token: string | null =
+        raw?.token ??
+        raw?.data?.token ??
+        raw?.value?.token ??
+        null;
+
+      if (!token) {
         return {
-          isSuccess: true,
-          isFailure: false,
-          value: {
-            token: response.token,
-            user
-          }
+          isSuccess: false,
+          isFailure: true,
+          error: {
+            code: raw?.error?.code || 'LOGIN_FAILED',
+            description: raw?.message || raw?.error?.description || 'Invalid response from server',
+            type: ErrorType.Failure,
+          },
         };
       }
-      
+
+      this.setToken(token);
+
+      // Decode JWT to extract user info
+      const user = this.decodeToken(token);
+
       return {
-        isSuccess: false,
-        isFailure: true,
-        error: {
-          code: 'LOGIN_FAILED',
-          description: 'Invalid response from server',
-          type: ErrorType.Failure
-        }
+        isSuccess: true,
+        isFailure: false,
+        value: {
+          token,
+          user,
+        },
       };
     } catch (error) {
       return {
@@ -147,8 +156,8 @@ class ApiClient {
         error: {
           code: 'LOGIN_FAILED',
           description: error instanceof Error ? error.message : 'Login failed',
-          type: ErrorType.Failure
-        }
+          type: ErrorType.Failure,
+        },
       };
     }
   }
