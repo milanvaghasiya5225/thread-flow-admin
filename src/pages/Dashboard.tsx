@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { CheckCircle, Clock, MessageSquare } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import DashboardLayout from '@/components/DashboardLayout';
-import { useDotNetAuth } from '@/contexts/DotNetAuthContext';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface Stats {
   resolved: number;
@@ -20,7 +20,7 @@ interface MonthlyData {
 }
 
 const Dashboard = () => {
-  const { isAuthenticated } = useDotNetAuth();
+  const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const [stats, setStats] = useState<Stats>({ resolved: 0, pending: 0, total: 0 });
   const [monthlyData, setMonthlyData] = useState<MonthlyData[]>([]);

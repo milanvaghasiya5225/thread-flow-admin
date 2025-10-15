@@ -21,7 +21,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { useDotNetAuth } from '@/contexts/DotNetAuthContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
 
 interface DashboardLayoutProps {
@@ -29,7 +29,7 @@ interface DashboardLayoutProps {
 }
 
 const DashboardLayout = ({ children }: DashboardLayoutProps) => {
-  const { user, logout } = useDotNetAuth();
+  const { user, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);

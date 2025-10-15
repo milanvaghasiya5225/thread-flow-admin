@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useDotNetAuth } from '@/contexts/DotNetAuthContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { apiClient } from '@/services/apiClient';
 import DashboardLayout from '@/components/DashboardLayout';
 import { Button } from '@/components/ui/button';
@@ -12,7 +12,7 @@ import { toast } from '@/hooks/use-toast';
 import { Upload } from 'lucide-react';
 
 const ProfileSettings = () => {
-  const { user, isAuthenticated } = useDotNetAuth();
+  const { user, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { useDotNetAuth } from '@/contexts/DotNetAuthContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -43,7 +43,7 @@ type RegisterFormData = z.infer<typeof registerSchema>;
 
 const Register = () => {
   const navigate = useNavigate();
-  const { register } = useDotNetAuth();
+  const { register } = useAuth();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
 

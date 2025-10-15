@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { OtpPurpose } from '@/types/api';
-import { useDotNetAuth } from '@/contexts/DotNetAuthContext';
+import { useAuth } from '@/contexts/AuthContext';
 import {
   InputOTP,
   InputOTPGroup,
@@ -16,7 +16,7 @@ const OtpVerification = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { toast } = useToast();
-  const { setUserFromToken } = useDotNetAuth();
+  const { setUserFromToken } = useAuth();
   
   const { contact, purpose, medium } = location.state || {};
   

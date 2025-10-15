@@ -1,117 +1,148 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import { User, Session } from '@supabase/supabase-js';
-import { supabase } from '@/integrations/supabase/client';
-
-interface Profile {
-  id: string;
-  first_name: string;
-  last_name: string;
-  username: string;
-  phone_number: string;
-  avatar_url?: string;
-  email_verified: boolean;
-  phone_verified: boolean;
-}
-
-interface UserRole {
-  role: 'super_admin' | 'admin' | 'user';
-}
+import { apiClient } from '@/services/apiClient';
+import type { UserResponse, LoginPasswordlessRequest, OtpPurpose } from '@/types/api';
 
 interface AuthContextType {
-  user: User | null;
-  session: Session | null;
-  profile: Profile | null;
-  roles: UserRole[];
+  user: UserResponse | null;
   loading: boolean;
-  signOut: () => Promise<void>;
-  refreshProfile: () => Promise<void>;
+  login: (email: string, password: string) => Promise<{ requiresOtp: boolean; email: string }>;
+  loginWithOtp: (data: LoginPasswordlessRequest) => Promise<{ success: boolean; contact: string; medium: string }>;
+  register: (data: {
+    firstName: string;
+    lastName: string;
+    email: string;
+    userName: string;
+    phone: string;
+    password: string;
+  }) => Promise<void>;
+  logout: () => void;
+  isAuthenticated: boolean;
+  setUserFromToken: (user: UserResponse) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
-  const [profile, setProfile] = useState<Profile | null>(null);
-  const [roles, setRoles] = useState<UserRole[]>([]);
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error('useAuth must be used within AuthProvider');
+  }
+  return context;
+};
+
+interface AuthProviderProps {
+  children: ReactNode;
+}
+
+export const AuthProvider = ({ children }: AuthProviderProps) => {
+  const [user, setUser] = useState<UserResponse | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const fetchProfile = async (userId: string) => {
-    const { data: profileData } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', userId)
-      .single();
+  useEffect(() => {
+    // Check if user is already logged in
+    const token = apiClient.getToken();
+    if (token) {
+      // TODO: You might want to add a /users/me endpoint to get current user
+      // For now, we'll just set loading to false
+      setLoading(false);
+    } else {
+      setLoading(false);
+    }
+  }, []);
 
-    const { data: rolesData } = await supabase
-      .from('user_roles')
-      .select('role')
-      .eq('user_id', userId);
+  const login = async (email: string, password: string) => {
+    try {
+      // Step 1: Validate password (but don't save token yet for 2FA)
+      const result = await apiClient.login({ email, password });
+      
+      if (!result.isSuccess) {
+        throw new Error(result.error?.description || 'Login failed');
+      }
 
-    setProfile(profileData);
-    setRoles(rolesData || []);
-  };
+      // Step 2: Send OTP for 2FA
+      const otpResult = await apiClient.loginPasswordless({ 
+        medium: 'email', 
+        email 
+      });
+      
+      if (!otpResult.isSuccess) {
+        throw new Error(otpResult.error?.description || 'Failed to send 2FA code');
+      }
 
-  const refreshProfile = async () => {
-    if (user) {
-      await fetchProfile(user.id);
+      // Return success - user needs to verify OTP
+      return { requiresOtp: true, email };
+    } catch (error) {
+      console.error('Login error:', error);
+      throw error;
     }
   };
 
-  useEffect(() => {
-    // Set up auth state listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
-        
-        if (session?.user) {
-          setTimeout(() => {
-            fetchProfile(session.user.id);
-          }, 0);
-        } else {
-          setProfile(null);
-          setRoles([]);
-        }
-        
-        setLoading(false);
-      }
-    );
-
-    // Check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
+  const loginWithOtp = async (data: LoginPasswordlessRequest) => {
+    try {
+      const result = await apiClient.loginPasswordless(data);
       
-      if (session?.user) {
-        fetchProfile(session.user.id);
+      if (!result.isSuccess) {
+        throw new Error(result.error?.description || 'Failed to send OTP');
+      }
+
+      // Return success with contact info for OTP verification page
+      return {
+        success: true,
+        contact: data.email || data.phone || '',
+        medium: data.email ? 'email' : 'phone'
+      };
+    } catch (error) {
+      console.error('Login with OTP error:', error);
+      throw error;
+    }
+  };
+
+  const setUserFromToken = (userData: UserResponse) => {
+    setUser(userData);
+  };
+
+  const register = async (data: {
+    firstName: string;
+    lastName: string;
+    email: string;
+    userName: string;
+    phone: string;
+    password: string;
+  }) => {
+    try {
+      const result = await apiClient.register(data);
+      
+      if (!result.isSuccess) {
+        throw new Error(result.error?.description || 'Registration failed');
       }
       
-      setLoading(false);
-    });
+      // After registration, you might want to automatically log in
+      // or redirect to verification page
+    } catch (error) {
+      console.error('Registration error:', error);
+      throw error;
+    }
+  };
 
-    return () => subscription.unsubscribe();
-  }, []);
-
-  const signOut = async () => {
-    await supabase.auth.signOut();
+  const logout = () => {
+    apiClient.logout();
     setUser(null);
-    setSession(null);
-    setProfile(null);
-    setRoles([]);
+  };
+
+  const value: AuthContextType = {
+    user,
+    loading,
+    login,
+    loginWithOtp,
+    register,
+    logout,
+    isAuthenticated: !!user,
+    setUserFromToken,
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, profile, roles, loading, signOut, refreshProfile }}>
+    <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
   );
-};
-
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
 };

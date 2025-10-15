@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Search, ArrowLeft, Trash2, MessageSquare, CheckCircle, Clock } from 'lucide-react';
 import { toast } from 'sonner';
-import { useDotNetAuth } from '@/contexts/DotNetAuthContext';
+import { useAuth } from '@/contexts/AuthContext';
 import DashboardLayout from '@/components/DashboardLayout';
 import { format } from 'date-fns';
 
@@ -19,7 +19,7 @@ import { format } from 'date-fns';
 // - Advanced filtering and status management
 
 const ContactsManager = () => {
-  const { user, isAuthenticated } = useDotNetAuth();
+  const { user, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const [contacts, setContacts] = useState<ContactMessage[]>([]);
   const [selectedContact, setSelectedContact] = useState<ContactMessage | null>(null);

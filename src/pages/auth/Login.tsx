@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { useDotNetAuth } from '@/contexts/DotNetAuthContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -33,7 +33,7 @@ type OtpLoginData = z.infer<typeof otpLoginSchema>;
 
 const Login = () => {
   const navigate = useNavigate();
-  const { login, loginWithOtp } = useDotNetAuth();
+  const { login, loginWithOtp } = useAuth();
   const { toast } = useToast();
   
   const [loading, setLoading] = useState(false);

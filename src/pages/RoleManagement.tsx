@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useDotNetAuth } from '@/contexts/DotNetAuthContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { apiClient } from '@/services/apiClient';
 import DashboardLayout from '@/components/DashboardLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -39,7 +39,7 @@ interface UserRole {
 }
 
 const RoleManagement = () => {
-  const { user, isAuthenticated } = useDotNetAuth();
+  const { user, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const [userRoles, setUserRoles] = useState<UserRole[]>([]);
   const [loading, setLoading] = useState(true);
