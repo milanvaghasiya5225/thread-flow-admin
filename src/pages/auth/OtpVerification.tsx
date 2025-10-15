@@ -29,7 +29,7 @@ const OtpVerification = () => {
         description: 'Invalid verification request',
         variant: 'destructive',
       });
-      navigate('/dotnet-login');
+      navigate('/login');
     }
   }, [contact, purpose, navigate, toast]);
 
@@ -167,7 +167,7 @@ const OtpVerification = () => {
           <div className="mt-4 text-center">
             <Button
               variant="ghost"
-              onClick={() => navigate('/dotnet-login')}
+              onClick={() => navigate('/login')}
               className="text-sm"
             >
               ← Back to Login

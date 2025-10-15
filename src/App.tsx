@@ -11,9 +11,9 @@ import ProfileSettings from "./pages/ProfileSettings";
 import UsersList from "./pages/UsersList";
 import RoleManagement from "./pages/RoleManagement";
 import NotFound from "./pages/NotFound";
-import DotNetLogin from "./pages/DotNetLogin";
-import DotNetRegister from "./pages/DotNetRegister";
-import OtpVerification from "./pages/OtpVerification";
+import Login from "./pages/auth/Login";
+import Register from "./pages/auth/Register";
+import OtpVerification from "./pages/auth/OtpVerification";
 
 const queryClient = new QueryClient();
 
@@ -25,10 +25,10 @@ const App = () => (
       <BrowserRouter>
         <DotNetAuthProvider>
           <Routes>
-            <Route path="/" element={<Navigate to="/dotnet-login" replace />} />
-            <Route path="/dotnet-login" element={<DotNetLogin />} />
-            <Route path="/dotnet-register" element={<DotNetRegister />} />
-            <Route path="/otp-verify" element={<OtpVerification />} />
+            <Route path="/" element={<Navigate to="/login" replace />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
+            <Route path="/otp-verification" element={<OtpVerification />} />
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/contacts" element={<ContactsManager />} />
             <Route path="/contacts-page" element={<ContactsPage />} />

@@ -1,135 +1,141 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { z } from 'zod';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { supabase } from '@/integrations/supabase/client';
+import { useNavigate, Link } from 'react-router-dom';
+import { useDotNetAuth } from '@/contexts/DotNetAuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { toast } from 'sonner';
+import { useToast } from '@/hooks/use-toast';
+import { OtpPurpose } from '@/types/api';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 
-const passwordSchema = z.object({
-  email: z.string().email('Invalid email address'),
-  password: z.string().min(1, 'Password is required'),
+const passwordLoginSchema = z.object({
+  email: z.string()
+    .email('Invalid email address')
+    .max(255, 'Email must not exceed 255 characters'),
+  password: z.string()
+    .min(1, 'Password is required')
+    .max(100, 'Password must not exceed 100 characters'),
 });
 
-const passwordlessSchema = z.object({
-  emailOrPhone: z.string().min(1, 'Email or phone number is required'),
-  otp: z.string().optional(),
+const otpLoginSchema = z.object({
+  email: z.string()
+    .email('Invalid email address')
+    .max(255, 'Email must not exceed 255 characters')
+    .optional()
+    .or(z.literal('')),
+  phone: z.string()
+    .regex(/^\+?[1-9]\d{1,14}$/, 'Invalid phone number format (use international format like +1234567890)')
+    .optional()
+    .or(z.literal('')),
+}).refine((data) => data.email || data.phone, {
+  message: "Either email or phone is required",
+  path: ["email"],
 });
 
-type PasswordForm = z.infer<typeof passwordSchema>;
-type PasswordlessForm = z.infer<typeof passwordlessSchema>;
+type PasswordLoginData = z.infer<typeof passwordLoginSchema>;
+type OtpLoginData = z.infer<typeof otpLoginSchema>;
 
 const Login = () => {
   const navigate = useNavigate();
+  const { login, loginWithOtp } = useDotNetAuth();
+  const { toast } = useToast();
+  
+  const [otpMedium, setOtpMedium] = useState<'email' | 'phone'>('email');
   const [loading, setLoading] = useState(false);
-  const [otpSent, setOtpSent] = useState(false);
 
-  const passwordForm = useForm<PasswordForm>({
-    resolver: zodResolver(passwordSchema),
-    defaultValues: { email: '', password: '' },
+  const passwordForm = useForm<PasswordLoginData>({
+    resolver: zodResolver(passwordLoginSchema),
+    defaultValues: {
+      email: '',
+      password: '',
+    },
   });
 
-  const passwordlessForm = useForm<PasswordlessForm>({
-    resolver: zodResolver(passwordlessSchema),
-    defaultValues: { emailOrPhone: '', otp: '' },
+  const otpForm = useForm<OtpLoginData>({
+    resolver: zodResolver(otpLoginSchema),
+    defaultValues: {
+      email: '',
+      phone: '',
+    },
   });
 
-  const onPasswordLogin = async (values: PasswordForm) => {
+  const onPasswordLogin = async (data: PasswordLoginData) => {
     setLoading(true);
+
     try {
-      const { error } = await supabase.auth.signInWithPassword({
-        email: values.email,
-        password: values.password,
+      await login(data.email, data.password);
+      toast({
+        title: 'Success',
+        description: 'Logged in successfully',
       });
-
-      if (error) throw error;
-
-      toast.success('Login successful!');
       navigate('/dashboard');
-    } catch (error: any) {
-      toast.error(error.message || 'Login failed');
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: error instanceof Error ? error.message : 'Login failed',
+        variant: 'destructive',
+      });
     } finally {
       setLoading(false);
     }
   };
 
-  const sendOTP = async (values: PasswordlessForm) => {
+  const onOtpLogin = async (data: OtpLoginData) => {
     setLoading(true);
+
     try {
-      const isEmail = values.emailOrPhone.includes('@');
+      const loginData = otpMedium === 'email' 
+        ? { medium: 'email' as const, email: data.email! }
+        : { medium: 'phone' as const, phone: data.phone! };
+
+      const result = await loginWithOtp(loginData);
       
-      if (isEmail) {
-        const { error } = await supabase.auth.signInWithOtp({
-          email: values.emailOrPhone,
+      if (result.success) {
+        toast({
+          title: 'OTP Sent',
+          description: `Verification code sent to your ${otpMedium}`,
         });
-        if (error) throw error;
-      } else {
-        const { error } = await supabase.auth.signInWithOtp({
-          phone: values.emailOrPhone,
+        
+        navigate('/otp-verification', {
+          state: {
+            contact: result.contact,
+            purpose: OtpPurpose.Login,
+            medium: result.medium,
+          },
         });
-        if (error) throw error;
       }
-
-      setOtpSent(true);
-      toast.success('OTP sent successfully!');
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to send OTP');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const verifyOTP = async (values: PasswordlessForm) => {
-    if (!values.otp) return;
-    
-    setLoading(true);
-    try {
-      const isEmail = values.emailOrPhone.includes('@');
-      
-      if (isEmail) {
-        const { error } = await supabase.auth.verifyOtp({
-          email: values.emailOrPhone,
-          token: values.otp,
-          type: 'email',
-        });
-        if (error) throw error;
-      } else {
-        const { error } = await supabase.auth.verifyOtp({
-          phone: values.emailOrPhone,
-          token: values.otp,
-          type: 'sms',
-        });
-        if (error) throw error;
-      }
-
-      toast.success('Login successful!');
-      navigate('/dashboard');
-    } catch (error: any) {
-      toast.error(error.message || 'OTP verification failed');
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: error instanceof Error ? error.message : 'Failed to send OTP',
+        variant: 'destructive',
+      });
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-accent/5 to-background p-4">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background to-muted p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl font-bold">Welcome Back</CardTitle>
-          <CardDescription>Choose your preferred login method</CardDescription>
+          <CardTitle className="text-2xl font-bold text-center">Welcome Back</CardTitle>
+          <CardDescription className="text-center">
+            Sign in to your account
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="password" className="w-full">
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="password">Password</TabsTrigger>
-              <TabsTrigger value="passwordless">Passwordless</TabsTrigger>
+              <TabsTrigger value="otp">OTP Login</TabsTrigger>
             </TabsList>
-
+            
             <TabsContent value="password">
               <Form {...passwordForm}>
                 <form onSubmit={passwordForm.handleSubmit(onPasswordLogin)} className="space-y-4">
@@ -140,96 +146,120 @@ const Login = () => {
                       <FormItem>
                         <FormLabel>Email</FormLabel>
                         <FormControl>
-                          <Input type="email" placeholder="john@example.com" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={passwordForm.control}
-                    name="password"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Password</FormLabel>
-                        <FormControl>
-                          <Input type="password" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <Button type="submit" className="w-full" disabled={loading}>
-                    {loading ? 'Logging in...' : 'Login'}
-                  </Button>
-                </form>
-              </Form>
-            </TabsContent>
-
-            <TabsContent value="passwordless">
-              <Form {...passwordlessForm}>
-                <form onSubmit={passwordlessForm.handleSubmit(otpSent ? verifyOTP : sendOTP)} className="space-y-4">
-                  <FormField
-                    control={passwordlessForm.control}
-                    name="emailOrPhone"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Email or Phone Number</FormLabel>
-                        <FormControl>
-                          <Input 
-                            placeholder="john@example.com or +1234567890" 
+                          <Input
                             {...field}
-                            disabled={otpSent}
+                            type="email"
+                            placeholder="name@example.com"
+                            disabled={loading}
                           />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
-
-                  {otpSent && (
-                    <FormField
-                      control={passwordlessForm.control}
-                      name="otp"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Enter OTP</FormLabel>
-                          <FormControl>
-                            <Input placeholder="Enter the code" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  )}
-
+                  <FormField
+                    control={passwordForm.control}
+                    name="password"
+                    render={({ field }) => (
+                      <FormItem>
+                        <div className="flex items-center justify-between">
+                          <FormLabel>Password</FormLabel>
+                          <Link
+                            to="/forgot-password"
+                            className="text-sm text-primary hover:underline"
+                          >
+                            Forgot password?
+                          </Link>
+                        </div>
+                        <FormControl>
+                          <Input
+                            {...field}
+                            type="password"
+                            disabled={loading}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
                   <Button type="submit" className="w-full" disabled={loading}>
-                    {loading ? 'Processing...' : otpSent ? 'Verify OTP' : 'Send OTP'}
+                    {loading ? 'Signing in...' : 'Sign In'}
                   </Button>
-
-                  {otpSent && (
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      className="w-full"
-                      onClick={() => setOtpSent(false)}
-                    >
-                      Change Email/Phone
-                    </Button>
-                  )}
+                </form>
+              </Form>
+            </TabsContent>
+            
+            <TabsContent value="otp">
+              <Form {...otpForm}>
+                <form onSubmit={otpForm.handleSubmit(onOtpLogin)} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label>Login with</Label>
+                    <Tabs value={otpMedium} onValueChange={(v) => setOtpMedium(v as 'email' | 'phone')}>
+                      <TabsList className="grid w-full grid-cols-2">
+                        <TabsTrigger value="email">Email</TabsTrigger>
+                        <TabsTrigger value="phone">Phone</TabsTrigger>
+                      </TabsList>
+                      
+                      <TabsContent value="email" className="mt-4">
+                        <FormField
+                          control={otpForm.control}
+                          name="email"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Email Address</FormLabel>
+                              <FormControl>
+                                <Input
+                                  {...field}
+                                  type="email"
+                                  placeholder="name@example.com"
+                                  disabled={loading}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </TabsContent>
+                      
+                      <TabsContent value="phone" className="mt-4">
+                        <FormField
+                          control={otpForm.control}
+                          name="phone"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Phone Number</FormLabel>
+                              <FormControl>
+                                <Input
+                                  {...field}
+                                  type="tel"
+                                  placeholder="+1234567890"
+                                  disabled={loading}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </TabsContent>
+                    </Tabs>
+                  </div>
+                  <Button type="submit" className="w-full" disabled={loading}>
+                    {loading ? 'Sending OTP...' : 'Send OTP'}
+                  </Button>
+                  <p className="text-xs text-center text-muted-foreground">
+                    We'll send a verification code to your {otpMedium}
+                  </p>
                 </form>
               </Form>
             </TabsContent>
           </Tabs>
-
-          <p className="text-center text-sm text-muted-foreground mt-4">
+          
+          <div className="mt-4 text-center text-sm">
             Don't have an account?{' '}
-            <Button variant="link" className="p-0" onClick={() => navigate('/register')}>
-              Register
-            </Button>
-          </p>
+            <Link to="/register" className="text-primary hover:underline">
+              Sign up
+            </Link>
+          </div>
         </CardContent>
       </Card>
     </div>

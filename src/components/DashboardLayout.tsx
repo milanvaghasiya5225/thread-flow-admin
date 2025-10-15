@@ -48,7 +48,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
 
   const handleLogout = async () => {
     logout();
-    navigate('/dotnet-login');
+    navigate('/login');
   };
 
   const getInitials = () => {
