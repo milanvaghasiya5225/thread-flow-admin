@@ -226,11 +226,12 @@ class ApiClient {
       });
 
       // Transform API response to ApiResult format
-      if (raw?.success && raw?.data?.sent) {
+      // Handle both: data.sent = true OR data = null (per spec)
+      if (raw?.success) {
         return {
           isSuccess: true,
           isFailure: false,
-          value: 'OTP sent successfully',
+          value: raw?.message || 'OTP sent successfully',
         };
       }
 
@@ -238,7 +239,7 @@ class ApiClient {
         isSuccess: false,
         isFailure: true,
         error: {
-          code: raw?.error?.code || 'OTP_SEND_FAILED',
+          code: 'OTP_SEND_FAILED',
           description: raw?.message || 'Failed to send OTP',
           type: ErrorType.Failure,
         },
