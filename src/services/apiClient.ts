@@ -161,20 +161,31 @@ class ApiClient {
 
   async login(data: LoginRequest): Promise<ApiResult<LoginResponse>> {
     try {
-      // Accept multiple possible response shapes from the server
-      // 1) { token: string }
-      // 2) { success: boolean, statusCode: number, message: string | null, data: { token: string } }
-      // 3) { isSuccess: boolean, value: { token: string } }
+      // Standard ApiResponse format:
+      // { success: boolean, data: { requiresOtp: boolean, contact?: string, medium?: string } | { token: string, user: {...} } }
       const raw = await this.request<any>('/users/login', {
         method: 'POST',
         body: JSON.stringify(data),
       });
 
-      const token: string | null =
-        raw?.token ??
-        raw?.data?.token ??
-        raw?.value?.token ??
-        null;
+      // Unwrap the data property from ApiResponse
+      const responseData = raw?.data || raw;
+
+      // Check if 2FA is required
+      if (responseData?.requiresOtp) {
+        return {
+          isSuccess: true,
+          isFailure: false,
+          value: {
+            requiresOtp: true,
+            contact: responseData.contact,
+            medium: responseData.medium,
+          } as LoginResponse,
+        };
+      }
+
+      // Otherwise, extract token
+      const token: string | null = responseData?.token ?? null;
 
       if (!token) {
         return {
@@ -182,15 +193,12 @@ class ApiClient {
           isFailure: true,
           error: {
             code: raw?.error?.code || 'LOGIN_FAILED',
-            description: raw?.message || raw?.error?.description || 'Invalid response from server',
+            description: raw?.message || 'Invalid response from server',
             type: ErrorType.Failure,
           },
         };
       }
 
-      // Don't set token here - 2FA required
-      // Token will be set after OTP verification
-      
       // Decode JWT to extract user info
       const user = this.decodeToken(token);
 
@@ -261,16 +269,58 @@ class ApiClient {
   }
 
   async verifyOtp(data: VerifyOtpRequest): Promise<ApiResult<LoginResponse>> {
-    const result = await this.request<ApiResult<LoginResponse>>('/users/verify-otp', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    });
-    
-    if (result.isSuccess && result.value?.token) {
-      this.setToken(result.value.token);
+    try {
+      const raw = await this.request<any>('/users/verify-otp', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      });
+
+      // Unwrap the data property from ApiResponse
+      const responseData = raw?.data || raw;
+
+      // Extract token from response
+      const token = responseData?.token;
+      
+      if (!token) {
+        return {
+          isSuccess: false,
+          isFailure: true,
+          error: {
+            code: raw?.error?.code || 'OTP_VERIFICATION_FAILED',
+            description: raw?.message || 'Invalid OTP or verification failed',
+            type: ErrorType.Failure,
+          },
+        };
+      }
+
+      // Set token for authenticated requests
+      this.setToken(token);
+
+      // Decode user from token
+      const user = this.decodeToken(token);
+
+      return {
+        isSuccess: true,
+        isFailure: false,
+        value: {
+          token,
+          user,
+        },
+      };
+    } catch (error) {
+      if (import.meta.env.DEV) {
+        console.error('Verify OTP error:', error);
+      }
+      return {
+        isSuccess: false,
+        isFailure: true,
+        error: {
+          code: 'OTP_VERIFICATION_FAILED',
+          description: error instanceof Error ? error.message : 'OTP verification failed',
+          type: ErrorType.Failure,
+        },
+      };
     }
-    
-    return result;
   }
 
   async resendOtp(data: ResendOtpRequest): Promise<ApiResult> {

@@ -5,7 +5,7 @@ import type { UserResponse, LoginPasswordlessRequest, OtpPurpose } from '@/types
 interface AuthContextType {
   user: UserResponse | null;
   loading: boolean;
-  login: (email: string, password: string) => Promise<{ requiresOtp: boolean; email: string }>;
+  login: (email: string, password: string) => Promise<{ requiresOtp: boolean; email: string; medium?: string }>;
   loginWithOtp: (data: LoginPasswordlessRequest) => Promise<{ success: boolean; contact: string; medium: string }>;
   register: (data: {
     firstName: string;
@@ -67,25 +67,29 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
   const login = async (email: string, password: string) => {
     try {
-      // Step 1: Validate password (but don't save token yet for 2FA)
       const result = await apiClient.login({ email, password });
       
       if (!result.isSuccess) {
         throw new Error(result.error?.description || 'Login failed');
       }
 
-      // Step 2: Send OTP for 2FA
-      const otpResult = await apiClient.loginPasswordless({ 
-        medium: 'email', 
-        email 
-      });
-      
-      if (!otpResult.isSuccess) {
-        throw new Error(otpResult.error?.description || 'Failed to send 2FA code');
+      // Check if the response indicates OTP is required
+      if (result.value && 'requiresOtp' in result.value && result.value.requiresOtp) {
+        // Backend has already sent the OTP, just return the info
+        return { 
+          requiresOtp: true, 
+          email: result.value.contact || email,
+          medium: result.value.medium || 'email'
+        };
       }
 
-      // Return success - user needs to verify OTP
-      return { requiresOtp: true, email };
+      // Direct login without 2FA (if backend ever supports it)
+      if (result.value && 'token' in result.value) {
+        setUser(result.value.user);
+        return { requiresOtp: false, email };
+      }
+
+      throw new Error('Invalid login response');
     } catch (error) {
       if (import.meta.env.DEV) {
         console.error('Login error:', error);

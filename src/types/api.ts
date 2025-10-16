@@ -93,10 +93,9 @@ export interface UserResponse {
   roles?: string[];
 }
 
-export interface LoginResponse {
-  token: string;
-  user: UserResponse;
-}
+export type LoginResponse = 
+  | { requiresOtp: true; contact: string; medium: string }
+  | { token: string; user: UserResponse; requiresOtp?: false };
 
 // Product Types
 export interface Product {

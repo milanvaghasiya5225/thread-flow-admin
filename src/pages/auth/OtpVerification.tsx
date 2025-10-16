@@ -58,7 +58,7 @@ const OtpVerification = () => {
         throw new Error(result.error?.description || 'OTP verification failed');
       }
 
-      if (result.value) {
+      if (result.value && 'user' in result.value) {
         setUserFromToken(result.value.user);
         toast({
           title: 'Success',

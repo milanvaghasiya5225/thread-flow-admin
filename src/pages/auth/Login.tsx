@@ -71,7 +71,7 @@ const Login = () => {
           state: {
             contact: result.email,
             purpose: OtpPurpose.Login,
-            medium: 'email',
+            medium: result.medium || 'email',
           },
         });
       }
