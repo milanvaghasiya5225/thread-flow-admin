@@ -193,6 +193,17 @@ export interface GetUsersParams {
   pageSize?: number;
 }
 
+export interface UserDetailsDto {
+  id: string;
+  email: string;
+  userName: string;
+  firstName: string;
+  lastName: string;
+  emailVerified: boolean;
+  phoneVerified: boolean;
+  roles: string[];
+}
+
 // Role Management Types
 export interface AssignRoleRequest {
   roleId: string;
@@ -201,6 +212,13 @@ export interface AssignRoleRequest {
 export interface RoleInfo {
   id: string;
   name: string;
+}
+
+export interface UserRoleAssignment {
+  userId: string;
+  userName: string;
+  userEmail: string;
+  roles: string[];
 }
 
 // Todo Types
@@ -227,9 +245,11 @@ export interface CreateTodoRequest {
 export interface RoleAuditLog {
   id: string;
   userId: string;
+  userName: string;
   role: string;
   action: string;
   performedBy?: string;
+  performedByName?: string;
   reason?: string;
   createdAt: string;
 }
@@ -238,4 +258,33 @@ export interface GetAuditLogsParams {
   userId?: string;
   page: number;
   pageSize: number;
+}
+
+export interface AuditLogsResponse {
+  items: RoleAuditLog[];
+  totalCount: number;
+  page: number;
+  pageSize: number;
+}
+
+// API Response Types
+export interface ApiResponse<T = any> {
+  success: boolean;
+  statusCode: number;
+  message?: string;
+  data?: T;
+  error?: {
+    code?: string;
+    details?: string;
+    meta?: Record<string, any>;
+  };
+  traceId?: string;
+  timestamp: string;
+  path?: string;
+  pagination?: {
+    page: number;
+    pageSize: number;
+    totalCount: number;
+    totalPages: number;
+  };
 }

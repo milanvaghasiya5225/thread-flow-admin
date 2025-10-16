@@ -10,6 +10,7 @@ import type {
   RequestForgotPasswordRequest,
   ResetPasswordRequest,
   UserResponse,
+  UserDetailsDto,
   ContactMessage,
   CreateContactMessageRequest,
   UpdateContactMessageRequest,
@@ -26,6 +27,7 @@ import type {
   CreateTodoRequest,
   RoleAuditLog,
   GetAuditLogsParams,
+  AuditLogsResponse,
   LoginPasswordlessRequest
 } from '@/types/api';
 import { ErrorType } from '@/types/api';
@@ -395,8 +397,8 @@ class ApiClient {
     });
   }
 
-  async getUserById(userId: string): Promise<ApiResult<UserResponse>> {
-    return this.request<ApiResult<UserResponse>>(`/users/${userId}`, {
+  async getUserById(userId: string): Promise<ApiResult<UserDetailsDto>> {
+    return this.request<ApiResult<UserDetailsDto>>(`/users/${userId}`, {
       method: 'GET',
     });
   }

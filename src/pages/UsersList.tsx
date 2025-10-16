@@ -47,13 +47,37 @@ const UsersList = () => {
   const fetchUsers = async () => {
     setLoading(true);
     try {
-      // Note: User management endpoints need to be added to your .NET API
-      // For now, showing placeholder message
-      toast({
-        title: 'Coming Soon',
-        description: 'User management endpoints need to be added to your .NET API',
-      });
-      setUsers([]);
+      const result = await apiClient.getUsers();
+      
+      if (result.isSuccess && result.value) {
+        // Transform API response to match our interface
+        const usersWithRoles: UserWithRoles[] = await Promise.all(
+          result.value.map(async (user) => {
+            // Fetch detailed user info to get roles
+            const detailResult = await apiClient.getUserById(user.id);
+            return {
+              id: user.id,
+              first_name: user.firstName,
+              last_name: user.lastName,
+              username: user.email, // Use email as username if not provided
+              phone_number: user.phone || '',
+              avatar_url: undefined,
+              email_verified: user.emailVerified,
+              phone_verified: user.phoneVerified,
+              created_at: new Date().toISOString(), // API doesn't return this
+              roles: detailResult.isSuccess && detailResult.value ? detailResult.value.roles : [],
+              email: user.email,
+            };
+          })
+        );
+        setUsers(usersWithRoles);
+      } else {
+        toast({
+          title: 'Error',
+          description: result.error?.description || 'Failed to fetch users',
+          variant: 'destructive',
+        });
+      }
     } catch (error: any) {
       toast({
         title: 'Error',
