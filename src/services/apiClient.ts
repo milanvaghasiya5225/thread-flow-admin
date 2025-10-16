@@ -219,10 +219,44 @@ class ApiClient {
   }
 
   async loginPasswordless(data: LoginPasswordlessRequest): Promise<ApiResult<string>> {
-    return this.request<ApiResult<string>>('/users/login-otp', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    });
+    try {
+      const raw = await this.request<any>('/users/login-otp', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      });
+
+      // Transform API response to ApiResult format
+      if (raw?.success && raw?.data?.sent) {
+        return {
+          isSuccess: true,
+          isFailure: false,
+          value: 'OTP sent successfully',
+        };
+      }
+
+      return {
+        isSuccess: false,
+        isFailure: true,
+        error: {
+          code: raw?.error?.code || 'OTP_SEND_FAILED',
+          description: raw?.message || 'Failed to send OTP',
+          type: ErrorType.Failure,
+        },
+      };
+    } catch (error) {
+      if (import.meta.env.DEV) {
+        console.error('Login passwordless error:', error);
+      }
+      return {
+        isSuccess: false,
+        isFailure: true,
+        error: {
+          code: 'OTP_SEND_FAILED',
+          description: error instanceof Error ? error.message : 'Failed to send OTP',
+          type: ErrorType.Failure,
+        },
+      };
+    }
   }
 
   async verifyOtp(data: VerifyOtpRequest): Promise<ApiResult<LoginResponse>> {
