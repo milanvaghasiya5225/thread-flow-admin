@@ -274,10 +274,44 @@ class ApiClient {
   }
 
   async resendOtp(data: ResendOtpRequest): Promise<ApiResult> {
-    return this.request<ApiResult>('/users/resend-otp', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    });
+    try {
+      const raw = await this.request<any>('/users/resend-otp', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      });
+
+      // Transform API response to ApiResult format
+      // Success response: { sent: true }
+      if (raw?.sent) {
+        return {
+          isSuccess: true,
+          isFailure: false,
+        };
+      }
+
+      return {
+        isSuccess: false,
+        isFailure: true,
+        error: {
+          code: 'OTP_RESEND_FAILED',
+          description: 'Failed to resend OTP',
+          type: ErrorType.Failure,
+        },
+      };
+    } catch (error) {
+      if (import.meta.env.DEV) {
+        console.error('Resend OTP error:', error);
+      }
+      return {
+        isSuccess: false,
+        isFailure: true,
+        error: {
+          code: 'OTP_RESEND_FAILED',
+          description: error instanceof Error ? error.message : 'Failed to resend OTP',
+          type: ErrorType.Failure,
+        },
+      };
+    }
   }
 
   async getVerificationStatus(email?: string, phone?: string): Promise<ApiResult> {
