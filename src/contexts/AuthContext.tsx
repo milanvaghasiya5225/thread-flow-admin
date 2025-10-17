@@ -14,7 +14,7 @@ interface AuthContextType {
     userName: string;
     phone: string;
     password: string;
-  }) => Promise<void>;
+  }) => Promise<{ userId: string }>;
   logout: () => void;
   isAuthenticated: boolean;
   setUserFromToken: (user: UserResponse) => void;
@@ -139,8 +139,8 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         throw new Error(result.error?.description || 'Registration failed');
       }
       
-      // After registration, you might want to automatically log in
-      // or redirect to verification page
+      // Return user ID for verification flow
+      return { userId: result.value || '' };
     } catch (error) {
       if (import.meta.env.DEV) {
         console.error('Registration error:', error);

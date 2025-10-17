@@ -62,23 +62,29 @@ const Login = () => {
       const result = await login(data.email, data.password);
       
       if (result.requiresOtp) {
+        const isVerification = result.medium === 'verification';
+        
         toast({
-          title: '2FA Required',
-          description: 'Verification code sent to your email',
+          title: isVerification ? 'Verification Required' : '2FA Required',
+          description: isVerification 
+            ? 'Please verify your email and phone to continue' 
+            : 'Verification code sent to your email',
         });
         
         navigate('/otp-verification', {
           state: {
             contact: result.email,
-            purpose: OtpPurpose.Login,
-            medium: result.medium || 'email',
+            purpose: isVerification ? ('registration' as const) : OtpPurpose.Login,
+            medium: isVerification ? 'email' : (result.medium || 'email'),
           },
         });
       }
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Login failed';
+      
       toast({
         title: 'Error',
-        description: error instanceof Error ? error.message : 'Login failed',
+        description: errorMessage,
         variant: 'destructive',
       });
     } finally {

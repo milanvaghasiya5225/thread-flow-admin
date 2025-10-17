@@ -11,6 +11,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { SmartContactInput } from '@/components/auth/SmartContactInput';
+import { OtpPurpose } from '@/types/api';
 
 const registerSchema = z.object({
   firstName: z.string()
@@ -63,7 +64,7 @@ const Register = () => {
     setLoading(true);
 
     try {
-      await register({
+      const result = await register({
         firstName: data.firstName,
         lastName: data.lastName,
         email: data.email,
@@ -74,14 +75,26 @@ const Register = () => {
 
       toast({
         title: 'Success',
-        description: 'Registration successful! Please check your email to verify your account.',
+        description: 'Registration successful! Please verify your email and phone.',
       });
       
-      navigate('/login');
+      // Redirect to OTP verification with email and phone for verification
+      navigate('/otp-verification', {
+        state: {
+          contact: data.email,
+          purpose: 'registration' as const,
+          medium: 'email',
+          phone: data.phone,
+        },
+      });
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Registration failed';
+      
       toast({
         title: 'Error',
-        description: error instanceof Error ? error.message : 'Registration failed',
+        description: errorMessage.includes('already exists') || errorMessage.includes('already registered')
+          ? 'This email or phone is already registered. Please try logging in.'
+          : errorMessage,
         variant: 'destructive',
       });
     } finally {
