@@ -156,10 +156,43 @@ class ApiClient {
 
   // Auth endpoints
   async register(data: RegisterRequest): Promise<ApiResult<string>> {
-    return this.request<ApiResult<string>>('/users/register', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    });
+    try {
+      const raw = await this.request<any>('/users/register', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      });
+
+      // Unwrap the data property from ApiResponse
+      const responseData = raw?.data || raw;
+      
+      if (raw?.success) {
+        return {
+          isSuccess: true,
+          isFailure: false,
+          value: responseData.id || responseData,
+        };
+      }
+
+      return {
+        isSuccess: false,
+        isFailure: true,
+        error: {
+          code: raw?.error?.code || 'REGISTRATION_FAILED',
+          description: raw?.message || 'Registration failed',
+          type: ErrorType.Failure,
+        },
+      };
+    } catch (error: any) {
+      return {
+        isSuccess: false,
+        isFailure: true,
+        error: {
+          code: 'REGISTRATION_ERROR',
+          description: error.message || 'An error occurred during registration',
+          type: ErrorType.Failure,
+        },
+      };
+    }
   }
 
   async login(data: LoginRequest): Promise<ApiResult<LoginResponse>> {
