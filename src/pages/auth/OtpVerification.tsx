@@ -59,6 +59,8 @@ const OtpVerification = () => {
       // Derive purpose from stage: 'verify' -> Registration, 'mfa' -> Login
       const purpose = stage === 'verify' ? OtpPurpose.Registration : OtpPurpose.Login;
       
+      let verificationResult = null;
+      
       // Verify email if required
       if (email?.required && emailOtp.length === 6) {
         const emailResult = await apiClient.verifyOtp({
@@ -70,6 +72,7 @@ const OtpVerification = () => {
         if (!emailResult.isSuccess) {
           throw new Error(emailResult.error?.description || 'Email OTP verification failed');
         }
+        verificationResult = emailResult;
       }
 
       // Verify phone if required
@@ -83,13 +86,28 @@ const OtpVerification = () => {
         if (!phoneResult.isSuccess) {
           throw new Error(phoneResult.error?.description || 'Phone OTP verification failed');
         }
+        verificationResult = phoneResult;
       }
 
-      toast({
-        title: 'Success',
-        description: 'Verification successful! Please login to continue.',
-      });
-      navigate('/login');
+      // For MFA stage, user should be logged in after verification
+      if (stage === 'mfa' && verificationResult?.value?.token) {
+        // Store token and user data
+        localStorage.setItem('token', verificationResult.value.token);
+        setUserFromToken(verificationResult.value.user);
+        
+        toast({
+          title: 'Success',
+          description: 'Login successful!',
+        });
+        navigate('/dashboard');
+      } else {
+        // For verify stage, redirect to login
+        toast({
+          title: 'Success',
+          description: 'Verification successful! Please login to continue.',
+        });
+        navigate('/login');
+      }
     } catch (error) {
       toast({
         title: 'Error',
