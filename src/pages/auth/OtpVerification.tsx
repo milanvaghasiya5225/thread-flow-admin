@@ -183,108 +183,76 @@ const OtpVerification = () => {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleVerify} className="space-y-6">
-            {/* Email Verification */}
-            {email && (
+            {/* Email Verification - Only show if required */}
+            {email?.required && (
               <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <label className="text-sm font-medium">Email Verification</label>
-                  {!email.required && (
-                    <div className="flex items-center gap-1 text-green-600">
-                      <Check className="h-4 w-4" />
-                      <span className="text-xs">Verified</span>
-                    </div>
-                  )}
-                </div>
+                <label className="text-sm font-medium">Email Verification</label>
                 <p className="text-xs text-muted-foreground">
                   {getMaskedContact(email.contact, true)}
                 </p>
-                {email.required ? (
-                  <>
-                    <InputOTP
-                      maxLength={6}
-                      value={emailOtp}
-                      onChange={setEmailOtp}
-                      disabled={loading}
-                    >
-                      <InputOTPGroup>
-                        <InputOTPSlot index={0} />
-                        <InputOTPSlot index={1} />
-                        <InputOTPSlot index={2} />
-                        <InputOTPSlot index={3} />
-                        <InputOTPSlot index={4} />
-                        <InputOTPSlot index={5} />
-                      </InputOTPGroup>
-                    </InputOTP>
-                    {email.sent && (
-                      <Button
-                        type="button"
-                        variant="link"
-                        size="sm"
-                        onClick={() => handleResend('email')}
-                        disabled={resending || countdown > 0}
-                        className="text-xs h-auto p-0"
-                      >
-                        {resending ? 'Sending...' : countdown > 0 ? `Resend in ${countdown}s` : 'Resend Code'}
-                      </Button>
-                    )}
-                  </>
-                ) : (
-                  <div className="h-10 rounded-md border border-green-200 bg-green-50 dark:bg-green-950 dark:border-green-800 flex items-center justify-center">
-                    <span className="text-sm text-green-700 dark:text-green-300">Email verified</span>
-                  </div>
+                <InputOTP
+                  maxLength={6}
+                  value={emailOtp}
+                  onChange={setEmailOtp}
+                  disabled={loading}
+                >
+                  <InputOTPGroup>
+                    <InputOTPSlot index={0} />
+                    <InputOTPSlot index={1} />
+                    <InputOTPSlot index={2} />
+                    <InputOTPSlot index={3} />
+                    <InputOTPSlot index={4} />
+                    <InputOTPSlot index={5} />
+                  </InputOTPGroup>
+                </InputOTP>
+                {email.sent && (
+                  <Button
+                    type="button"
+                    variant="link"
+                    size="sm"
+                    onClick={() => handleResend('email')}
+                    disabled={resending || countdown > 0}
+                    className="text-xs h-auto p-0"
+                  >
+                    {resending ? 'Sending...' : countdown > 0 ? `Resend in ${countdown}s` : 'Resend Code'}
+                  </Button>
                 )}
               </div>
             )}
 
-            {/* Phone Verification */}
-            {phone && (
+            {/* Phone Verification - Only show if required */}
+            {phone?.required && (
               <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <label className="text-sm font-medium">Phone Verification</label>
-                  {!phone.required && (
-                    <div className="flex items-center gap-1 text-green-600">
-                      <Check className="h-4 w-4" />
-                      <span className="text-xs">Verified</span>
-                    </div>
-                  )}
-                </div>
+                <label className="text-sm font-medium">Phone Verification</label>
                 <p className="text-xs text-muted-foreground">
                   {getMaskedContact(phone.contact, false)}
                 </p>
-                {phone.required ? (
-                  <>
-                    <InputOTP
-                      maxLength={6}
-                      value={phoneOtp}
-                      onChange={setPhoneOtp}
-                      disabled={loading}
-                    >
-                      <InputOTPGroup>
-                        <InputOTPSlot index={0} />
-                        <InputOTPSlot index={1} />
-                        <InputOTPSlot index={2} />
-                        <InputOTPSlot index={3} />
-                        <InputOTPSlot index={4} />
-                        <InputOTPSlot index={5} />
-                      </InputOTPGroup>
-                    </InputOTP>
-                    {phone.sent && (
-                      <Button
-                        type="button"
-                        variant="link"
-                        size="sm"
-                        onClick={() => handleResend('phone')}
-                        disabled={resending || countdown > 0}
-                        className="text-xs h-auto p-0"
-                      >
-                        {resending ? 'Sending...' : countdown > 0 ? `Resend in ${countdown}s` : 'Resend Code'}
-                      </Button>
-                    )}
-                  </>
-                ) : (
-                  <div className="h-10 rounded-md border border-green-200 bg-green-50 dark:bg-green-950 dark:border-green-800 flex items-center justify-center">
-                    <span className="text-sm text-green-700 dark:text-green-300">Phone verified</span>
-                  </div>
+                <InputOTP
+                  maxLength={6}
+                  value={phoneOtp}
+                  onChange={setPhoneOtp}
+                  disabled={loading}
+                >
+                  <InputOTPGroup>
+                    <InputOTPSlot index={0} />
+                    <InputOTPSlot index={1} />
+                    <InputOTPSlot index={2} />
+                    <InputOTPSlot index={3} />
+                    <InputOTPSlot index={4} />
+                    <InputOTPSlot index={5} />
+                  </InputOTPGroup>
+                </InputOTP>
+                {phone.sent && (
+                  <Button
+                    type="button"
+                    variant="link"
+                    size="sm"
+                    onClick={() => handleResend('phone')}
+                    disabled={resending || countdown > 0}
+                    className="text-xs h-auto p-0"
+                  >
+                    {resending ? 'Sending...' : countdown > 0 ? `Resend in ${countdown}s` : 'Resend Code'}
+                  </Button>
                 )}
               </div>
             )}
