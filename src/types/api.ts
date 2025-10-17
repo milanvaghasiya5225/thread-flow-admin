@@ -184,6 +184,13 @@ export interface UpdateMeRequest {
   phone?: string;
 }
 
+export interface UpdateUserRequest {
+  firstName?: string;
+  lastName?: string;
+  phone?: string;
+  email?: string;
+}
+
 export interface UpdateStatusRequest {
   isActive: boolean;
 }

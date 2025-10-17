@@ -19,6 +19,7 @@ import type {
   MonthlyStatistics,
   GetContactsParams,
   UpdateMeRequest,
+  UpdateUserRequest,
   UpdateStatusRequest,
   GetUsersParams,
   AssignRoleRequest,
@@ -552,6 +553,68 @@ class ApiClient {
       method: 'PUT',
       body: JSON.stringify(data),
     });
+  }
+
+  async updateUser(userId: string, data: UpdateUserRequest): Promise<ApiResult<UserDetailsDto>> {
+    try {
+      const raw = await this.request<any>(`/users/${userId}`, {
+        method: 'PUT',
+        body: JSON.stringify(data),
+      });
+      const userData = raw?.data ?? raw;
+      if (userData && userData.id) {
+        return { isSuccess: true, isFailure: false, value: userData as UserDetailsDto };
+      }
+      return {
+        isSuccess: false,
+        isFailure: true,
+        error: {
+          code: raw?.error?.code || 'UPDATE_USER_FAILED',
+          description: raw?.message || 'Failed to update user',
+          type: ErrorType.Failure,
+        },
+      };
+    } catch (error) {
+      return {
+        isSuccess: false,
+        isFailure: true,
+        error: {
+          code: 'UPDATE_USER_FAILED',
+          description: error instanceof Error ? error.message : 'Failed to update user',
+          type: ErrorType.Failure,
+        },
+      };
+    }
+  }
+
+  async deleteUser(userId: string): Promise<ApiResult> {
+    try {
+      const raw = await this.request<any>(`/users/${userId}`, {
+        method: 'DELETE',
+      });
+      if (raw?.success || raw?.isSuccess) {
+        return { isSuccess: true, isFailure: false };
+      }
+      return {
+        isSuccess: false,
+        isFailure: true,
+        error: {
+          code: raw?.error?.code || 'DELETE_USER_FAILED',
+          description: raw?.message || 'Failed to delete user',
+          type: ErrorType.Failure,
+        },
+      };
+    } catch (error) {
+      return {
+        isSuccess: false,
+        isFailure: true,
+        error: {
+          code: 'DELETE_USER_FAILED',
+          description: error instanceof Error ? error.message : 'Failed to delete user',
+          type: ErrorType.Failure,
+        },
+      };
+    }
   }
 
   logout() {

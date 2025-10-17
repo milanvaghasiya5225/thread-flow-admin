@@ -30,7 +30,7 @@ interface UserWithRoles extends UserProfile {
 }
 
 const UsersList = () => {
-  const { user, isAuthenticated } = useAuth();
+  const { user: currentUser, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const [users, setUsers] = useState<UserWithRoles[]>([]);
   const [loading, setLoading] = useState(true);
@@ -122,14 +122,34 @@ const UsersList = () => {
   };
 
   const handleDeleteUser = async (userId: string) => {
-    if (!confirm('Are you sure you want to delete this user?')) {
+    if (!window.confirm('Are you sure you want to delete this user? This action cannot be undone.')) {
       return;
     }
     
-    toast({
-      title: 'Delete User',
-      description: `Delete functionality for user ${userId} coming soon`,
-    });
+    try {
+      const result = await apiClient.deleteUser(userId);
+      
+      if (result.isSuccess) {
+        toast({
+          title: 'Success',
+          description: 'User deleted successfully',
+        });
+        // Refresh the users list
+        fetchUsers();
+      } else {
+        toast({
+          title: 'Error',
+          description: result.error?.description || 'Failed to delete user',
+          variant: 'destructive',
+        });
+      }
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.message,
+        variant: 'destructive',
+      });
+    }
   };
 
   if (loading) {
@@ -232,24 +252,29 @@ const UsersList = () => {
                         {new Date(user.created_at).toLocaleDateString()}
                       </TableCell>
                       <TableCell className="text-right">
-                        <div className="flex justify-end gap-2">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleEditUser(user.id)}
-                            title="Edit user"
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleDeleteUser(user.id)}
-                            title="Delete user"
-                          >
-                            <Trash2 className="h-4 w-4 text-destructive" />
-                          </Button>
-                        </div>
+                        {/* Don't show edit/delete for current user */}
+                        {currentUser && currentUser.id !== user.id ? (
+                          <div className="flex justify-end gap-2">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleEditUser(user.id)}
+                              title="Edit user"
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleDeleteUser(user.id)}
+                              title="Delete user"
+                            >
+                              <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
+                          </div>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">Current User</span>
+                        )}
                       </TableCell>
                     </TableRow>
                   ))
