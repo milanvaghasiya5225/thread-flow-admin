@@ -94,8 +94,8 @@ export interface UserResponse {
 }
 
 export type LoginResponse = 
-  | { requiresOtp: true; contact?: string; medium?: string; email?: { required: boolean; contact: string; sent: boolean }; phone?: { required: boolean; contact: string; sent: boolean } }
-  | { token: string; user: UserResponse; requiresOtp?: false };
+  | { stage: 'verify' | 'mfa'; email?: { required: boolean; contact: string; sent: boolean }; phone?: { required: boolean; contact: string; sent: boolean }; token?: null }
+  | { stage: 'auth'; token: string; user: UserResponse };
 
 // Product Types
 export interface Product {

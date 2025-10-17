@@ -207,15 +207,18 @@ class ApiClient {
       // Unwrap the data property from ApiResponse
       const responseData = raw?.data || raw;
 
-      // Check if 2FA is required
-      if (responseData?.requiresOtp) {
+      // Check the stage from API response
+      const stage = responseData?.stage;
+      
+      if (stage === 'verify' || stage === 'mfa') {
         return {
           isSuccess: true,
           isFailure: false,
           value: {
-            requiresOtp: true,
-            contact: responseData.contact,
-            medium: responseData.medium,
+            stage,
+            email: responseData.email,
+            phone: responseData.phone,
+            token: null,
           } as LoginResponse,
         };
       }
@@ -245,6 +248,7 @@ class ApiClient {
         isSuccess: true,
         isFailure: false,
         value: {
+          stage: 'auth' as const,
           token,
           user,
         },
@@ -342,6 +346,7 @@ class ApiClient {
         isSuccess: true,
         isFailure: false,
         value: {
+          stage: 'auth' as const,
           token,
           user,
         },

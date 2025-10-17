@@ -5,7 +5,7 @@ import type { UserResponse, LoginPasswordlessRequest, OtpPurpose } from '@/types
 interface AuthContextType {
   user: UserResponse | null;
   loading: boolean;
-  login: (email: string, password: string) => Promise<{ requiresOtp: boolean; email?: { required: boolean; contact: string; sent: boolean }; phone?: { required: boolean; contact: string; sent: boolean } }>;
+  login: (email: string, password: string) => Promise<{ stage: 'verify' | 'mfa' | 'auth'; email?: { required: boolean; contact: string; sent: boolean }; phone?: { required: boolean; contact: string; sent: boolean } }>;
   loginWithOtp: (data: LoginPasswordlessRequest) => Promise<{ success: boolean; contact: string; medium: string }>;
   register: (data: {
     firstName: string;
@@ -73,20 +73,24 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         throw new Error(result.error?.description || 'Login failed');
       }
 
-      // Check if the response indicates OTP is required
-      if (result.value && 'requiresOtp' in result.value && result.value.requiresOtp) {
-        // Pass the verification data directly from the API response
-        return { 
-          requiresOtp: true,
-          email: result.value.email,
-          phone: result.value.phone,
-        };
-      }
-
-      // Direct login without 2FA (if backend ever supports it)
-      if (result.value && 'token' in result.value) {
-        setUser(result.value.user);
-        return { requiresOtp: false };
+      // Handle different authentication stages
+      if (result.value && 'stage' in result.value) {
+        const stage = result.value.stage;
+        
+        // If stage is 'auth', user is fully authenticated
+        if (stage === 'auth' && 'token' in result.value) {
+          setUser(result.value.user);
+          return { stage: 'auth' as const };
+        }
+        
+        // If stage is 'verify' or 'mfa', return verification data
+        if (stage === 'verify' || stage === 'mfa') {
+          return { 
+            stage,
+            email: result.value.email,
+            phone: result.value.phone,
+          };
+        }
       }
 
       throw new Error('Invalid login response');

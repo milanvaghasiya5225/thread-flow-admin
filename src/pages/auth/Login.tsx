@@ -61,10 +61,24 @@ const Login = () => {
     try {
       const result = await login(data.email, data.password);
       
-      if (result.requiresOtp) {
+      // Handle verification or MFA stages
+      if (result.stage === 'verify') {
         toast({
           title: 'Verification Required',
-          description: 'Please complete the verification process',
+          description: 'Please verify your email or phone number',
+        });
+        
+        navigate('/otp-verification', {
+          state: {
+            email: result.email,
+            phone: result.phone,
+            purpose: OtpPurpose.Registration,
+          },
+        });
+      } else if (result.stage === 'mfa') {
+        toast({
+          title: '2FA Required',
+          description: 'Please complete two-factor authentication',
         });
         
         navigate('/otp-verification', {
@@ -75,6 +89,7 @@ const Login = () => {
           },
         });
       }
+      // If stage is 'auth', user is logged in and will be redirected automatically
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Login failed';
       
