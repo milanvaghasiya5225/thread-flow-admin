@@ -25,7 +25,7 @@ const OtpVerification = () => {
   const { toast } = useToast();
   const { setUserFromToken } = useAuth();
   
-  const { email, phone, purpose } = location.state || {};
+  const { email, phone, stage } = location.state || {};
   
   const [emailOtp, setEmailOtp] = useState('');
   const [phoneOtp, setPhoneOtp] = useState('');
@@ -56,10 +56,13 @@ const OtpVerification = () => {
     setLoading(true);
 
     try {
+      // Derive purpose from stage: 'verify' -> Registration, 'mfa' -> Login
+      const purpose = stage === 'verify' ? OtpPurpose.Registration : OtpPurpose.Login;
+      
       // Verify email if required
       if (email?.required && emailOtp.length === 6) {
         const emailResult = await apiClient.verifyOtp({
-          purpose: purpose as OtpPurpose,
+          purpose,
           contact: email.contact,
           code: emailOtp,
         });
@@ -72,7 +75,7 @@ const OtpVerification = () => {
       // Verify phone if required
       if (phone?.required && phoneOtp.length === 6) {
         const phoneResult = await apiClient.verifyOtp({
-          purpose: purpose as OtpPurpose,
+          purpose,
           contact: phone.contact,
           code: phoneOtp,
         });
@@ -104,11 +107,14 @@ const OtpVerification = () => {
     const contactInfo = contactType === 'email' ? email : phone;
     if (!contactInfo) return;
     
+    // Derive purpose from stage
+    const purpose = stage === 'verify' ? OtpPurpose.Registration : OtpPurpose.Login;
+    
     setResending(true);
     try {
       const result = await apiClient.resendOtp({
         identifier: contactInfo.contact,
-        purpose: purpose as OtpPurpose,
+        purpose,
       });
 
       if (!result.isSuccess) {

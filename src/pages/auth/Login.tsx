@@ -72,7 +72,7 @@ const Login = () => {
           state: {
             email: result.email,
             phone: result.phone,
-            purpose: OtpPurpose.Registration,
+            stage: 'verify',
           },
         });
       } else if (result.stage === 'mfa') {
@@ -85,7 +85,7 @@ const Login = () => {
           state: {
             email: result.email,
             phone: result.phone,
-            purpose: OtpPurpose.Login,
+            stage: 'mfa',
           },
         });
       }

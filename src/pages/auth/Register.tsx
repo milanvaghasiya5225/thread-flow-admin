@@ -83,7 +83,7 @@ const Register = () => {
         state: {
           email: { required: true, contact: data.email, sent: true },
           phone: { required: true, contact: data.phone, sent: true },
-          purpose: 'registration' as const,
+          stage: 'verify',
         },
       });
     } catch (error) {
