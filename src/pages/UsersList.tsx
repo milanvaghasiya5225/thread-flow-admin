@@ -9,6 +9,16 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { toast } from '@/hooks/use-toast';
 import { Search, Edit, Trash2 } from 'lucide-react';
 
@@ -35,6 +45,7 @@ const UsersList = () => {
   const [users, setUsers] = useState<UserWithRoles[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [deleteUserId, setDeleteUserId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -114,20 +125,18 @@ const UsersList = () => {
   };
 
   const handleEditUser = (userId: string) => {
-    // Navigate to edit user page or open edit dialog
-    toast({
-      title: 'Edit User',
-      description: `Edit functionality for user ${userId} coming soon`,
-    });
+    navigate(`/users/edit/${userId}`);
   };
 
-  const handleDeleteUser = async (userId: string) => {
-    if (!window.confirm('Are you sure you want to delete this user? This action cannot be undone.')) {
-      return;
-    }
+  const handleDeleteUser = (userId: string) => {
+    setDeleteUserId(userId);
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteUserId) return;
     
     try {
-      const result = await apiClient.deleteUser(userId);
+      const result = await apiClient.deleteUser(deleteUserId);
       
       if (result.isSuccess) {
         toast({
@@ -149,6 +158,8 @@ const UsersList = () => {
         description: error.message,
         variant: 'destructive',
       });
+    } finally {
+      setDeleteUserId(null);
     }
   };
 
@@ -284,6 +295,24 @@ const UsersList = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={!!deleteUserId} onOpenChange={() => setDeleteUserId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete this user account. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Delete User
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </DashboardLayout>
   );
 };

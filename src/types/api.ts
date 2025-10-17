@@ -206,6 +206,7 @@ export interface UserDetailsDto {
   userName: string;
   firstName: string;
   lastName: string;
+  phone?: string;
   emailVerified: boolean;
   phoneVerified: boolean;
   roles: string[];

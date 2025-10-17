@@ -10,6 +10,7 @@ import ContactsManager from "./pages/ContactsManager";
 import ContactsPage from "./pages/ContactsPage";
 import ProfileSettings from "./pages/ProfileSettings";
 import UsersList from "./pages/UsersList";
+import EditUser from "./pages/EditUser";
 import RoleManagement from "./pages/RoleManagement";
 import NotFound from "./pages/NotFound";
 import Login from "./pages/auth/Login";
@@ -35,6 +36,7 @@ const App = () => {
               <Route path="/contacts" element={<ProtectedRoute><ContactsManager /></ProtectedRoute>} />
               <Route path="/contacts-page" element={<ProtectedRoute><ContactsPage /></ProtectedRoute>} />
               <Route path="/users" element={<ProtectedRoute><UsersList /></ProtectedRoute>} />
+              <Route path="/users/edit/:userId" element={<ProtectedRoute><EditUser /></ProtectedRoute>} />
               <Route path="/roles" element={<ProtectedRoute><RoleManagement /></ProtectedRoute>} />
               <Route path="/profile" element={<ProtectedRoute><ProfileSettings /></ProtectedRoute>} />
               <Route path="*" element={<NotFound />} />
