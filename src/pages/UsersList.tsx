@@ -8,8 +8,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 import { toast } from '@/hooks/use-toast';
-import { Search } from 'lucide-react';
+import { Search, Edit, Trash2 } from 'lucide-react';
 
 interface UserProfile {
   id: string;
@@ -112,6 +113,25 @@ const UsersList = () => {
     }
   };
 
+  const handleEditUser = (userId: string) => {
+    // Navigate to edit user page or open edit dialog
+    toast({
+      title: 'Edit User',
+      description: `Edit functionality for user ${userId} coming soon`,
+    });
+  };
+
+  const handleDeleteUser = async (userId: string) => {
+    if (!confirm('Are you sure you want to delete this user?')) {
+      return;
+    }
+    
+    toast({
+      title: 'Delete User',
+      description: `Delete functionality for user ${userId} coming soon`,
+    });
+  };
+
   if (loading) {
     return (
       <DashboardLayout>
@@ -154,12 +174,13 @@ const UsersList = () => {
                   <TableHead>Roles</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Joined</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filteredUsers.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center text-muted-foreground">
+                    <TableCell colSpan={7} className="text-center text-muted-foreground">
                       No users found
                     </TableCell>
                   </TableRow>
@@ -209,6 +230,26 @@ const UsersList = () => {
                       </TableCell>
                       <TableCell className="text-sm text-muted-foreground">
                         {new Date(user.created_at).toLocaleDateString()}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-2">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleEditUser(user.id)}
+                            title="Edit user"
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleDeleteUser(user.id)}
+                            title="Delete user"
+                          >
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))
