@@ -201,6 +201,9 @@ class ApiClient {
         };
       }
 
+      // Persist token for subsequent requests
+      this.setToken(token);
+
       // Decode JWT to extract user info
       const user = this.decodeToken(token);
 
@@ -398,9 +401,34 @@ class ApiClient {
   }
 
   async getUserById(userId: string): Promise<ApiResult<UserDetailsDto>> {
-    return this.request<ApiResult<UserDetailsDto>>(`/users/${userId}`, {
-      method: 'GET',
-    });
+    try {
+      const raw = await this.request<any>(`/users/${userId}`, {
+        method: 'GET',
+      });
+      const data = raw?.data ?? raw;
+      if (data && data.id) {
+        return { isSuccess: true, isFailure: false, value: data as UserDetailsDto };
+      }
+      return {
+        isSuccess: false,
+        isFailure: true,
+        error: {
+          code: raw?.error?.code || 'GET_USER_FAILED',
+          description: raw?.message || 'Failed to load user details',
+          type: ErrorType.Failure,
+        },
+      };
+    } catch (error) {
+      return {
+        isSuccess: false,
+        isFailure: true,
+        error: {
+          code: 'GET_USER_FAILED',
+          description: error instanceof Error ? error.message : 'Failed to load user details',
+          type: ErrorType.Failure,
+        },
+      };
+    }
   }
 
   async getUsers(params?: GetUsersParams): Promise<ApiResult<UserResponse[]>> {
@@ -408,22 +436,97 @@ class ApiClient {
     if (params?.page) queryParams.append('page', params.page.toString());
     if (params?.pageSize) queryParams.append('pageSize', params.pageSize.toString());
     const queryString = queryParams.toString();
-    return this.request<ApiResult<UserResponse[]>>(`/users${queryString ? `?${queryString}` : ''}`, {
-      method: 'GET',
-    });
+    try {
+      const raw = await this.request<any>(`/users${queryString ? `?${queryString}` : ''}`, {
+        method: 'GET',
+      });
+      const data = raw?.data ?? raw;
+      if (Array.isArray(data)) {
+        return { isSuccess: true, isFailure: false, value: data as UserResponse[] };
+      }
+      return {
+        isSuccess: false,
+        isFailure: true,
+        error: {
+          code: raw?.error?.code || 'GET_USERS_FAILED',
+          description: raw?.message || 'Failed to load users',
+          type: ErrorType.Failure,
+        },
+      };
+    } catch (error) {
+      return {
+        isSuccess: false,
+        isFailure: true,
+        error: {
+          code: 'GET_USERS_FAILED',
+          description: error instanceof Error ? error.message : 'Failed to load users',
+          type: ErrorType.Failure,
+        },
+      };
+    }
   }
 
   async getCurrentUser(): Promise<ApiResult<UserResponse>> {
-    return this.request<ApiResult<UserResponse>>('/users/me', {
-      method: 'GET',
-    });
+    try {
+      const raw = await this.request<any>('/users/me', {
+        method: 'GET',
+      });
+      const data = raw?.data ?? raw;
+      if (data && (data.id || data.email)) {
+        return { isSuccess: true, isFailure: false, value: data as UserResponse };
+      }
+      return {
+        isSuccess: false,
+        isFailure: true,
+        error: {
+          code: raw?.error?.code || 'GET_ME_FAILED',
+          description: raw?.message || 'Failed to load current user',
+          type: ErrorType.Failure,
+        },
+      };
+    } catch (error) {
+      return {
+        isSuccess: false,
+        isFailure: true,
+        error: {
+          code: 'GET_ME_FAILED',
+          description: error instanceof Error ? error.message : 'Failed to load current user',
+          type: ErrorType.Failure,
+        },
+      };
+    }
   }
 
   async updateCurrentUser(data: UpdateMeRequest): Promise<ApiResult<UserResponse>> {
-    return this.request<ApiResult<UserResponse>>('/users/me', {
-      method: 'PUT',
-      body: JSON.stringify(data),
-    });
+    try {
+      const raw = await this.request<any>('/users/me', {
+        method: 'PUT',
+        body: JSON.stringify(data),
+      });
+      const responseData = raw?.data ?? raw;
+      if (responseData && (responseData.id || responseData.email)) {
+        return { isSuccess: true, isFailure: false, value: responseData as UserResponse };
+      }
+      return {
+        isSuccess: false,
+        isFailure: true,
+        error: {
+          code: raw?.error?.code || 'UPDATE_ME_FAILED',
+          description: raw?.message || 'Failed to update profile',
+          type: ErrorType.Failure,
+        },
+      };
+    } catch (error) {
+      return {
+        isSuccess: false,
+        isFailure: true,
+        error: {
+          code: 'UPDATE_ME_FAILED',
+          description: error instanceof Error ? error.message : 'Failed to update profile',
+          type: ErrorType.Failure,
+        },
+      };
+    }
   }
 
   async updateUserStatus(userId: string, data: UpdateStatusRequest): Promise<ApiResult> {
