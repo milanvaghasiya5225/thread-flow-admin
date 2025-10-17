@@ -5,7 +5,7 @@ import type { UserResponse, LoginPasswordlessRequest, OtpPurpose } from '@/types
 interface AuthContextType {
   user: UserResponse | null;
   loading: boolean;
-  login: (email: string, password: string) => Promise<{ requiresOtp: boolean; email?: string; phone?: string; medium?: string; verificationData?: any }>;
+  login: (email: string, password: string) => Promise<{ requiresOtp: boolean; email?: { required: boolean; contact: string; sent: boolean }; phone?: { required: boolean; contact: string; sent: boolean } }>;
   loginWithOtp: (data: LoginPasswordlessRequest) => Promise<{ success: boolean; contact: string; medium: string }>;
   register: (data: {
     firstName: string;
@@ -75,21 +75,18 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
       // Check if the response indicates OTP is required
       if (result.value && 'requiresOtp' in result.value && result.value.requiresOtp) {
-        // Pass the full verification data structure
+        // Pass the verification data directly from the API response
         return { 
           requiresOtp: true,
-          verificationData: {
-            email: result.value.email || null,
-            phone: result.value.phone || null,
-            purpose: 'Login' as const,
-          }
+          email: result.value.email,
+          phone: result.value.phone,
         };
       }
 
       // Direct login without 2FA (if backend ever supports it)
       if (result.value && 'token' in result.value) {
         setUser(result.value.user);
-        return { requiresOtp: false, email };
+        return { requiresOtp: false };
       }
 
       throw new Error('Invalid login response');

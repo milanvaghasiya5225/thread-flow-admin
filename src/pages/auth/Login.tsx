@@ -68,9 +68,9 @@ const Login = () => {
         });
         
         navigate('/otp-verification', {
-          state: result.verificationData || {
-            email: result.email ? { required: true, contact: result.email, sent: true } : null,
-            phone: result.phone ? { required: true, contact: result.phone, sent: true } : null,
+          state: {
+            email: result.email,
+            phone: result.phone,
             purpose: OtpPurpose.Login,
           },
         });
