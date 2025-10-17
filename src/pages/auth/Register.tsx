@@ -78,13 +78,12 @@ const Register = () => {
         description: 'Registration successful! Please verify your email and phone.',
       });
       
-      // Redirect to OTP verification with email and phone for verification
+      // Redirect to OTP verification
       navigate('/otp-verification', {
         state: {
-          contact: data.email,
+          email: { required: true, contact: data.email, sent: true },
+          phone: { required: true, contact: data.phone, sent: true },
           purpose: 'registration' as const,
-          medium: 'email',
-          phone: data.phone,
         },
       });
     } catch (error) {

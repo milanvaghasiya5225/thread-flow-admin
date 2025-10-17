@@ -94,7 +94,7 @@ export interface UserResponse {
 }
 
 export type LoginResponse = 
-  | { requiresOtp: true; contact: string; medium: string }
+  | { requiresOtp: true; contact?: string; medium?: string; email?: { required: boolean; contact: string; sent: boolean }; phone?: { required: boolean; contact: string; sent: boolean } }
   | { token: string; user: UserResponse; requiresOtp?: false };
 
 // Product Types

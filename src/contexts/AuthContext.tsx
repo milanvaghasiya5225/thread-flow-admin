@@ -5,7 +5,7 @@ import type { UserResponse, LoginPasswordlessRequest, OtpPurpose } from '@/types
 interface AuthContextType {
   user: UserResponse | null;
   loading: boolean;
-  login: (email: string, password: string) => Promise<{ requiresOtp: boolean; email: string; medium?: string }>;
+  login: (email: string, password: string) => Promise<{ requiresOtp: boolean; email?: string; phone?: string; medium?: string; verificationData?: any }>;
   loginWithOtp: (data: LoginPasswordlessRequest) => Promise<{ success: boolean; contact: string; medium: string }>;
   register: (data: {
     firstName: string;
@@ -75,11 +75,14 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
       // Check if the response indicates OTP is required
       if (result.value && 'requiresOtp' in result.value && result.value.requiresOtp) {
-        // Backend has already sent the OTP, just return the info
+        // Pass the full verification data structure
         return { 
-          requiresOtp: true, 
-          email: result.value.contact || email,
-          medium: result.value.medium || 'email'
+          requiresOtp: true,
+          verificationData: {
+            email: result.value.email || null,
+            phone: result.value.phone || null,
+            purpose: 'Login' as const,
+          }
         };
       }
 
