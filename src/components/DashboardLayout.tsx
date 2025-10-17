@@ -36,8 +36,10 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   const [showLogoutDialog, setShowLogoutDialog] = useState(false);
 
   // Check user roles from JWT token
-  const userRoles = user?.roles || [];
-  const isSuperAdmin = userRoles.includes('super_admin');
+  const userRoles = (user?.roles || []).map(r =>
+    (r || '').toString().toLowerCase().replace(/\s+/g, '_').replace(/-/g, '_')
+  );
+  const isSuperAdmin = userRoles.includes('super_admin') || userRoles.includes('superadmin');
   const isAdmin = isSuperAdmin || userRoles.includes('admin');
 
   const menuItems = [

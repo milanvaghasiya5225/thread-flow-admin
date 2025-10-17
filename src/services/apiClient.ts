@@ -473,7 +473,23 @@ class ApiClient {
       });
       const data = raw?.data ?? raw;
       if (data && (data.id || data.email)) {
-        return { isSuccess: true, isFailure: false, value: data as UserResponse };
+        // Normalize/augment roles. Some APIs don't include roles on /me.
+        let roles: string[] | undefined = (data.roles as string[] | undefined) ?? undefined;
+        if ((!roles || roles.length === 0) && this.token) {
+          const fromJwt = this.decodeToken(this.token).roles;
+          roles = fromJwt && fromJwt.length ? fromJwt : roles;
+        }
+        const normalized: UserResponse = {
+          id: data.id,
+          email: data.email,
+          firstName: data.firstName ?? data.givenName ?? '',
+          lastName: data.lastName ?? data.surname ?? '',
+          phone: data.phone ?? data.phoneNumber ?? undefined,
+          emailVerified: Boolean(data.emailVerified),
+          phoneVerified: Boolean(data.phoneVerified),
+          roles,
+        };
+        return { isSuccess: true, isFailure: false, value: normalized };
       }
       return {
         isSuccess: false,
