@@ -441,8 +441,10 @@ class ApiClient {
         method: 'GET',
       });
       const data = raw?.data ?? raw;
-      if (Array.isArray(data)) {
-        return { isSuccess: true, isFailure: false, value: data as UserResponse[] };
+      // Handle paginated response: data.items or direct array
+      const users = data?.items || (Array.isArray(data) ? data : null);
+      if (users && Array.isArray(users)) {
+        return { isSuccess: true, isFailure: false, value: users as UserResponse[] };
       }
       return {
         isSuccess: false,
