@@ -56,15 +56,12 @@ const OtpVerification = () => {
     setLoading(true);
 
     try {
-      // Derive purpose from stage: 'verify' -> Registration, 'mfa' -> Login
-      const purpose = stage === 'verify' ? OtpPurpose.Registration : OtpPurpose.Login;
-      
       let verificationResult = null;
       
       // Verify email if required
       if (email?.required && emailOtp.length === 6) {
         const emailResult = await apiClient.verifyOtp({
-          purpose,
+          purpose: OtpPurpose.VerifyEmail,
           contact: email.contact,
           code: emailOtp,
         });
@@ -78,7 +75,7 @@ const OtpVerification = () => {
       // Verify phone if required
       if (phone?.required && phoneOtp.length === 6) {
         const phoneResult = await apiClient.verifyOtp({
-          purpose,
+          purpose: OtpPurpose.VerifyPhone,
           contact: phone.contact,
           code: phoneOtp,
         });
@@ -125,8 +122,8 @@ const OtpVerification = () => {
     const contactInfo = contactType === 'email' ? email : phone;
     if (!contactInfo) return;
     
-    // Derive purpose from stage
-    const purpose = stage === 'verify' ? OtpPurpose.Registration : OtpPurpose.Login;
+    // Use specific verification purpose based on contact type
+    const purpose = contactType === 'email' ? OtpPurpose.VerifyEmail : OtpPurpose.VerifyPhone;
     
     setResending(true);
     try {

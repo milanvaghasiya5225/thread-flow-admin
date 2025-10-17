@@ -3,7 +3,9 @@
 export enum OtpPurpose {
   Login = 'Login',
   Registration = 'Registration',
-  ForgotPassword = 'ForgotPassword'
+  ForgotPassword = 'ForgotPassword',
+  VerifyEmail = 'VerifyEmail',
+  VerifyPhone = 'VerifyPhone'
 }
 
 export enum ErrorType {
